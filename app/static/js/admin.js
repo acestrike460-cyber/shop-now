@@ -450,7 +450,7 @@ async function confirmarEmisionShalomPro() {
 
         cerrarModalEmitirShalomPro();
         alert(`🎉 ¡Guía generada exitosamente!\n\nNúmero de Guía: ${data.numero_guia}\nModo: ${data.modo}\nMonto Flete: S/ ${Number(data.monto_flete).toFixed(2)}\n\nEl estado cambió automáticamente a "EN PREPARACIÓN".`);
-        recargarTablaEnvios();
+        window.location.reload();
     } catch (e) {
         console.error('Error emitiendo guía Shalom Pro:', e);
         alert('Ocurrió un error inesperado al conectar con Shalom Pro.');

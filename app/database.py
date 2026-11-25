@@ -338,7 +338,7 @@ class DatabaseManager:
             UPDATE envios_shalom 
             SET numero_guia_shalom = ?, url_guia_pdf = ?, monto_flete = ?, estado_shalom_pro = ?, estado_registro = 'EN_PREPARACION', ose_id = COALESCE(?, ose_id), updated_at = ?
             WHERE id = ? OR codigo_registro = ?
-        """, (numero_guia, url_pdf, monto_flete, estado_shalom, str(ose_id) if ose_id else None, now_iso, id_envio, id_envio))
+        """, (numero_guia, url_pdf, monto_flete, estado_shalom, str(ose_id) if ose_id else None, now_iso, str(id_envio), str(id_envio)))
 
         afectados = cur.rowcount
         conn.commit()

@@ -571,16 +571,56 @@ async def api_admin_emitir_guia_shalom_pro(
             detail=resultado.get("mensaje", "Error al emitir guía en Shalom Pro")
         )
 
-    # Actualizar en la base de datos
-    DatabaseManager.actualizar_guia_shalom_pro(
-        id_envio=envio["id"],
-        numero_guia=resultado["numero_guia"],
-        url_pdf=resultado.get("url_pdf_guia", ""),
-        monto_flete=float(resultado.get("monto_flete", 0.0)),
-        estado_shalom=resultado.get("estado_shalom", "EMITIDO"),
-        ose_id=resultado.get("ose_id")
-    )
+    # Actualizar en la base de datos de manera directa y garantizada
+    num_guia = str(resultado.get("numero_guia", "")).strip()
+    url_pdf = str(resultado.get("url_pdf_guia", "")).strip() or "https://pro.shalom.pe/enviospendientes/list"
+    monto_flete = float(resultado.get("monto_flete", 0.0))
+    estado_shalom = str(resultado.get("estado_shalom", "EMITIDO")).strip()
+    ose_id = str(resultado.get("ose_id") or (resultado.get("raw_response") or {}).get("ose_id") or "").strip()
 
+    conn = DatabaseManager.get_connection()
+    cur = conn.cursor()
+    now_iso = get_lima_now().isoformat()
+    cur.execute("""
+        UPDATE envios_shalom 
+        SET numero_guia_shalom = ?,
+            url_guia_pdf = ?,
+            monto_flete = ?,
+            estado_shalom_pro = ?,
+            estado_registro = 'EN_PREPARACION',
+            ose_id = COALESCE(?, ose_id),
+            updated_at = ?
+        WHERE id = ? OR codigo_registro = ? OR id = ? OR codigo_registro = ?
+    """, (
+        num_guia, 
+        url_pdf, 
+        monto_flete, 
+        estado_shalom, 
+        ose_id or None, 
+        now_iso, 
+        id_envio, 
+        id_envio, 
+        envio.get("id"), 
+        envio.get("codigo_registro")
+    ))
+    afectados = cur.rowcount
+    conn.commit()
+    conn.close()
+
+    if afectados > 0 and settings.SUPABASE_URL and settings.SUPABASE_KEY:
+        datos_supa = {
+            "numero_guia_shalom": num_guia,
+            "url_guia_pdf": url_pdf,
+            "monto_flete": monto_flete,
+            "estado_shalom_pro": estado_shalom,
+            "estado_registro": "EN_PREPARACION",
+            "updated_at": now_iso
+        }
+        if ose_id:
+            datos_supa["ose_id"] = ose_id
+        DatabaseManager._update_in_supabase("envios_shalom", id_envio, datos_supa)
+
+    resultado["db_actualizado"] = (afectados > 0)
     return resultado
 
 @app.get("/api/admin/shalom-pro/estado")
