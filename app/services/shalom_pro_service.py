@@ -164,6 +164,7 @@ class ShalomProService:
                         num_guia = str(data.get("guia") or data.get("numero_guia") or data.get("tracking_number") or "").strip()
                         serie = str(data.get("serie", "V286")).strip()
                         codigo_seg = str(data.get("codigo", "")).strip()
+                        ose_id = str(data.get("ose_id") or "").strip()
                         monto = 12.00 if envio.get("departamento") == "Lima" else 18.00
                         return {
                             "success": True,
@@ -171,6 +172,7 @@ class ShalomProService:
                             "numero_guia": num_guia,
                             "serie_guia": serie,
                             "codigo_seguridad": codigo_seg,
+                            "ose_id": ose_id,
                             "url_pdf_guia": "https://pro.shalom.pe/enviospendientes/list",
                             "monto_flete": monto,
                             "estado_shalom": "ORDEN_GENERADA",
@@ -213,6 +215,45 @@ class ShalomProService:
             "mensaje": f"Pre-guía generada exitosamente. Lista para sincronizar en Shalom Pro.",
             "datos_payload": payload_shalom
         }
+
+    @classmethod
+    async def eliminar_orden_shalom(cls, ose_id: Optional[str] = None, numero_guia: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Elimina o cancela una orden de servicio electrónica pendiente en Shalom Pro vía API oficial.
+        """
+        if not cls.esta_configurado():
+            return {"success": True, "deleted": True, "mensaje": "Modo simulador: orden eliminada localmente"}
+
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "X-API-Key": settings.SHALOM_PRO_API_KEY,
+            "Authorization": f"Bearer {settings.SHALOM_PRO_API_KEY}"
+        }
+        if getattr(settings, "SHALOM_PRO_EMAIL", None) and getattr(settings, "SHALOM_PRO_PASSWORD", None):
+            headers["X-Shalom-Email"] = settings.SHALOM_PRO_EMAIL
+            headers["X-Shalom-Password"] = settings.SHALOM_PRO_PASSWORD
+
+        targets = []
+        if ose_id and str(ose_id).strip():
+            targets.append(str(ose_id).strip())
+        if numero_guia and str(numero_guia).strip() and str(numero_guia).strip() not in targets:
+            targets.append(str(numero_guia).strip())
+
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            for tid in targets:
+                try:
+                    url = f"{settings.SHALOM_PRO_API_URL}/v1/orders/{tid}"
+                    resp = await client.delete(url, headers=headers)
+                    if resp.status_code in (200, 204):
+                        logger.info(f"Orden {tid} eliminada exitosamente en Shalom Pro: {resp.text}")
+                        return {"success": True, "deleted": True, "id": tid}
+                    elif resp.status_code == 404:
+                        logger.info(f"Orden {tid} no encontrada en Shalom Pro (quizá ya cancelada)")
+                except Exception as e:
+                    logger.warning(f"Error llamando a Shalom Pro DELETE /v1/orders/{tid}: {e}")
+
+        return {"success": False, "deleted": False, "mensaje": "No se pudo cancelar en Shalom Pro automáticamente"}
 
     @classmethod
     def generar_excel_masivo_oficial(cls, envios: list, origen: str = "LIMA", tamano_defecto: str = "PAQUETE XS") -> bytes:

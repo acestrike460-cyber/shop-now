@@ -74,7 +74,8 @@ class DatabaseManager:
             ("estado_shalom_pro", "TEXT DEFAULT 'NO_EMITIDO'"),
             ("url_guia_pdf", "TEXT"),
             ("monto_flete", "REAL"),
-            ("tamano_paquete", "TEXT DEFAULT 'PAQUETE XS'")
+            ("tamano_paquete", "TEXT DEFAULT 'PAQUETE XS'"),
+            ("ose_id", "TEXT")
         ]
 
         for col, col_type in columnas_a_verificar:
@@ -147,7 +148,7 @@ class DatabaseManager:
                             'provincia', 'distrito', 'codigo_agencia', 'nombre_agencia',
                             'direccion_agencia', 'referencia_agencia', 'fecha_despacho',
                             'numero_guia_shalom', 'estado_shalom_pro', 'url_guia_pdf',
-                            'monto_flete', 'tamano_paquete', 'estado_verificacion_identidad',
+                            'monto_flete', 'tamano_paquete', 'ose_id', 'estado_verificacion_identidad',
                             'estado_registro', 'idempotency_key', 'ip_origen', 'notas_admin',
                             'fecha_registro', 'created_at', 'updated_at'
                         ]
@@ -324,7 +325,8 @@ class DatabaseManager:
         numero_guia: str, 
         url_pdf: str, 
         monto_flete: float, 
-        estado_shalom: str = "EMITIDO"
+        estado_shalom: str = "EMITIDO",
+        ose_id: Optional[str] = None
     ) -> bool:
         """Actualiza el envío con los datos de la guía oficial emitida en Shalom Pro."""
         cls.init_db()
@@ -334,23 +336,26 @@ class DatabaseManager:
 
         cur.execute("""
             UPDATE envios_shalom 
-            SET numero_guia_shalom = ?, url_guia_pdf = ?, monto_flete = ?, estado_shalom_pro = ?, estado_registro = 'EN_PREPARACION', updated_at = ?
+            SET numero_guia_shalom = ?, url_guia_pdf = ?, monto_flete = ?, estado_shalom_pro = ?, estado_registro = 'EN_PREPARACION', ose_id = COALESCE(?, ose_id), updated_at = ?
             WHERE id = ? OR codigo_registro = ?
-        """, (numero_guia, url_pdf, monto_flete, estado_shalom, now_iso, id_envio, id_envio))
+        """, (numero_guia, url_pdf, monto_flete, estado_shalom, str(ose_id) if ose_id else None, now_iso, id_envio, id_envio))
 
         afectados = cur.rowcount
         conn.commit()
         conn.close()
 
         if afectados > 0:
-            cls._update_in_supabase("envios_shalom", id_envio, {
+            datos_supa = {
                 "numero_guia_shalom": numero_guia,
                 "url_guia_pdf": url_pdf,
                 "monto_flete": monto_flete,
                 "estado_shalom_pro": estado_shalom,
                 "estado_registro": "EN_PREPARACION",
                 "updated_at": now_iso
-            })
+            }
+            if ose_id:
+                datos_supa["ose_id"] = str(ose_id)
+            cls._update_in_supabase("envios_shalom", id_envio, datos_supa)
 
         return afectados > 0
 

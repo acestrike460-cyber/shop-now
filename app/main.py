@@ -507,18 +507,33 @@ async def api_admin_eliminar_envio(
     id_envio: str,
     admin: dict = Depends(get_current_admin)
 ):
-    """Permite al operador eliminar permanentemente un registro de envío."""
+    """Permite al operador eliminar permanentemente un registro de envío y cancelarlo en Shalom Pro."""
     envio = DatabaseManager.obtener_envio_por_codigo(id_envio)
     if not envio:
         raise HTTPException(status_code=404, detail="Envío no encontrado")
+    
+    # Cancelar también en Shalom Pro si ya tenía guía u orden emitida
+    shalom_cancelado = False
+    ose_id = envio.get("ose_id")
+    numero_guia = envio.get("numero_guia_shalom")
+    if ose_id or numero_guia:
+        res_shalom = await ShalomProService.eliminar_orden_shalom(ose_id=ose_id, numero_guia=numero_guia)
+        shalom_cancelado = res_shalom.get("deleted", False)
     
     exito = DatabaseManager.eliminar_envio(id_envio)
     if not exito:
         raise HTTPException(status_code=500, detail="No se pudo eliminar el registro de envío")
     
+    mensaje = f"Envío {envio.get('codigo_registro')} eliminado"
+    if shalom_cancelado:
+        mensaje += " y cancelado en Shalom Pro exitosamente."
+    else:
+        mensaje += " de la base de datos."
+
     return {
         "success": True,
-        "mensaje": f"Envío {envio.get('codigo_registro')} eliminado permanentemente"
+        "mensaje": mensaje,
+        "shalom_cancelado": shalom_cancelado
     }
 
 @app.post("/api/admin/envios/{id_envio}/emitir-shalom-pro")
@@ -562,7 +577,8 @@ async def api_admin_emitir_guia_shalom_pro(
         numero_guia=resultado["numero_guia"],
         url_pdf=resultado.get("url_pdf_guia", ""),
         monto_flete=float(resultado.get("monto_flete", 0.0)),
-        estado_shalom=resultado.get("estado_shalom", "EMITIDO")
+        estado_shalom=resultado.get("estado_shalom", "EMITIDO"),
+        ose_id=resultado.get("ose_id")
     )
 
     return resultado
