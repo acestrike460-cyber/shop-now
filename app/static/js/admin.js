@@ -135,7 +135,14 @@ function renderizarTablaAdmin(envios) {
                         ${e.numero_guia_shalom}
                     </span>
                     ${e.monto_flete ? `<span class="text-[10px] text-gray-500 block mt-0.5 font-medium">Flete: S/ ${Number(e.monto_flete).toFixed(2)}</span>` : ''}
-                    ${e.url_guia_pdf ? `<a href="${e.url_guia_pdf}" target="_blank" class="inline-flex items-center gap-1 text-[10px] text-shalom-600 hover:text-shalom-800 font-bold mt-0.5 underline"><i data-lucide="external-link" class="w-2.5 h-2.5"></i> Rastrear / PDF</a>` : ''}
+                    <div class="flex flex-col gap-0.5 mt-1">
+                        <a href="https://pro.shalom.pe/enviospendientes/list" target="_blank" class="inline-flex items-center gap-1 text-[10px] text-shalom-700 hover:text-shalom-900 font-bold underline" title="Descargar rótulo oficial en Shalom Pro">
+                            <i data-lucide="printer" class="w-2.5 h-2.5"></i> Descargar Rótulo
+                        </a>
+                        <a href="https://shalom.com.pe/rastreo" target="_blank" class="inline-flex items-center gap-1 text-[10px] text-gray-500 hover:text-gray-700 font-medium underline" title="Rastreo público Shalom">
+                            <i data-lucide="search" class="w-2.5 h-2.5"></i> Rastrear en Shalom
+                        </a>
+                    </div>
                 </div>
             `;
         } else {
