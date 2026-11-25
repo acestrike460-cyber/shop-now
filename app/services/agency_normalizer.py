@@ -185,6 +185,9 @@ def _formatear_hora(h: str, m: Optional[str], sufijo: Optional[str]) -> str:
 
 def normalizar_horario(valor: Any) -> str:
     """'LUNES A VIERNES - 8AM A 8PM' -> 'Lunes a viernes: 8:00 AM - 8:00 PM'. Vacío si no hay dato."""
+    if isinstance(valor, dict):
+        partes_dict = [str(v) for k, v in valor.items() if v and isinstance(v, str) and ("hora" in k or "atencion" in k)]
+        valor = " | ".join(partes_dict)
     texto = limpiar_espacios(valor)
     if not texto or normalizar_texto(texto) in ("null", "none", "-"):
         return ""
@@ -286,9 +289,9 @@ def normalizar_agencia(registro: Dict[str, Any], fuente: str = "") -> Optional[D
     if not isinstance(registro, dict):
         return None
 
-    es_formato_shalom = "ter_id" in registro
+    es_formato_shalom = "ter_id" in registro or ("/" in str(registro.get("nombre") or "") and ("lugar_over" in registro or "zona" in registro))
     ident = _primero(registro, "ter_id", "id", "codigo_agencia", "agencia_id")
-    codigo = _primero(registro, "ter_abrebiatura", "ter_abreviatura", "codigo", "abreviatura", "code")
+    codigo = _primero(registro, "ter_abrebiatura", "ter_abreviatura", "codigo", "abreviatura", "abrebiatura", "code")
     if ident is None and codigo is None:
         return None
     ident = str(ident if ident is not None else codigo).strip()
@@ -297,7 +300,7 @@ def normalizar_agencia(registro: Dict[str, Any], fuente: str = "") -> Optional[D
                                        (registro.get("nombre") if es_formato_shalom else "") or "")
     if es_formato_shalom:
         partes = [p.strip() for p in str(registro.get("nombre") or "").split("/") if p.strip()]
-        nombre_raw = partes[-1] if partes else registro.get("zona", "")
+        nombre_raw = registro.get("lugar_over") or (partes[-1] if partes else registro.get("zona", ""))
     else:
         nombre_raw = _primero(registro, "nombre", "agencia", "nombre_agencia", "name") or ""
     nombre = titulo_toponimo(nombre_raw)

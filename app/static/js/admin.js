@@ -79,7 +79,7 @@ function renderizarTablaAdmin(envios) {
     if (!envios || envios.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="8" class="px-4 py-8 text-center text-gray-400 text-xs">
+                <td colspan="9" class="px-4 py-8 text-center text-gray-400 text-xs">
                     No se encontraron envíos con los filtros aplicados.
                 </td>
             </tr>
@@ -107,6 +107,23 @@ function renderizarTablaAdmin(envios) {
         else if (e.estado_registro === 'ENTREGADO') estadoColor = 'bg-emerald-50 text-emerald-700 border-emerald-300';
 
         const despachoBadge = e.fecha_despacho ? `<span class="text-[9px] px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 font-semibold block mt-0.5">Despacho: ${e.fecha_despacho}</span>` : '';
+
+        // Celda Tamaño de Paquete
+        const tamanoActual = e.tamano_paquete || 'PAQUETE XS';
+        const celdaTamano = `
+            <select 
+                onchange="cambiarTamanoPaquete('${e.id}', this.value, this)" 
+                class="text-[11px] font-bold rounded-lg px-2.5 py-1 border transition-all cursor-pointer bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100"
+                title="Selecciona el tamaño del paquete para Shalom Pro"
+            >
+                <option value="PAQUETE XS" ${tamanoActual === 'PAQUETE XS' ? 'selected' : ''}>📦 XS (0.5 kg)</option>
+                <option value="PAQUETE XXS" ${tamanoActual === 'PAQUETE XXS' ? 'selected' : ''}>📦 XXS (0.25 kg)</option>
+                <option value="SOBRE" ${tamanoActual === 'SOBRE' ? 'selected' : ''}>✉️ SOBRE (0 kg)</option>
+                <option value="PAQUETE S" ${tamanoActual === 'PAQUETE S' ? 'selected' : ''}>📦 S (2 kg)</option>
+                <option value="PAQUETE M" ${tamanoActual === 'PAQUETE M' ? 'selected' : ''}>📦 M (5 kg)</option>
+                <option value="PAQUETE L" ${tamanoActual === 'PAQUETE L' ? 'selected' : ''}>📦 L (10 kg)</option>
+            </select>
+        `;
 
         // Celda Guía Shalom Pro
         let celdaShalomPro = '';
@@ -157,6 +174,9 @@ function renderizarTablaAdmin(envios) {
             <td class="px-4 py-3">
                 <span class="font-semibold text-gray-900 block">${e.nombre_agencia}</span>
                 <span class="text-[10px] text-gray-400 block">${e.distrito}, ${e.departamento}</span>
+            </td>
+            <td class="px-4 py-3 whitespace-nowrap">
+                ${celdaTamano}
             </td>
             <td class="px-4 py-3 whitespace-nowrap" id="col-guia-${e.id}">
                 ${celdaShalomPro}
@@ -212,6 +232,34 @@ async function cambiarEstado(idEnvio, nuevoEstado) {
     }
 }
 
+async function cambiarTamanoPaquete(idEnvio, nuevoTamano, selectEl) {
+    if (!selectEl) return;
+    const originalClasses = selectEl.className;
+    selectEl.disabled = true;
+    try {
+        const res = await fetch(`/api/admin/envios/${idEnvio}/tamano`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({tamano_paquete: nuevoTamano})
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            alert(data.detail || 'Error al actualizar el tamaño del paquete');
+        } else {
+            // Visual feedback: green border/bg flash to confirm save
+            selectEl.className = 'text-[11px] font-bold rounded-lg px-2.5 py-1 border transition-all cursor-pointer bg-emerald-100 text-emerald-900 border-emerald-400';
+            setTimeout(() => {
+                selectEl.className = originalClasses;
+            }, 800);
+        }
+    } catch (err) {
+        console.error('Error al cambiar tamaño de paquete:', err);
+        alert('Error de conexión al guardar el tamaño.');
+    } finally {
+        selectEl.disabled = false;
+    }
+}
+
 function abrirDetalleEnvio(envio) {
     const modal = document.getElementById('modal-admin-detalle');
     const box = document.getElementById('detalle-modal-contenido');
@@ -238,6 +286,10 @@ function abrirDetalleEnvio(envio) {
             <div class="flex justify-between border-b pb-1.5">
                 <span class="text-gray-500 font-semibold">Ubicación:</span>
                 <span class="text-right text-gray-800">${envio.distrito}, ${envio.provincia}, ${envio.departamento}</span>
+            </div>
+            <div class="flex justify-between border-b pb-1.5">
+                <span class="text-gray-500 font-semibold">Tamaño Shalom Pro:</span>
+                <span class="font-bold text-amber-800">${envio.tamano_paquete || 'PAQUETE XS'}</span>
             </div>
             <div class="flex justify-between border-b pb-1.5">
                 <span class="text-gray-500 font-semibold">Dirección:</span>
@@ -369,7 +421,9 @@ function cerrarModalCargaMasivaShalomPro() {
 function descargarPlantillaShalomPro() {
     const chk = document.getElementById('check-solo-pendientes-masivo');
     const soloPendientes = chk ? chk.checked : true;
-    window.location.href = `/api/admin/envios/exportar-shalom-pro?solo_pendientes=${soloPendientes}`;
+    const tamanoSel = document.getElementById('select-tamano-defecto-masivo');
+    const tamanoDefecto = tamanoSel ? tamanoSel.value : 'PAQUETE XS';
+    window.location.href = `/api/admin/envios/exportar-shalom-pro?solo_pendientes=${soloPendientes}&tamano_defecto=${encodeURIComponent(tamanoDefecto)}`;
 }
 
 // ==============================================================================

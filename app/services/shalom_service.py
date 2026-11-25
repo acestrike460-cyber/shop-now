@@ -567,10 +567,17 @@ class ShalomService:
             }
         headers = {"Accept": "application/json", "User-Agent": f"{settings.BUSINESS_NAME} - ShalomEnvios/{settings.APP_VERSION}"}
         if settings.SHALOM_API_KEY:
+            headers["X-API-Key"] = settings.SHALOM_API_KEY
             headers["Authorization"] = f"Bearer {settings.SHALOM_API_KEY}"
+        
+        api_url = settings.SHALOM_API_URL
+        if "agencies" in api_url and "per_page" not in api_url:
+            sep = "&" if "?" in api_url else "?"
+            api_url = f"{api_url}{sep}per_page=1000"
+
         try:
-            async with httpx.AsyncClient(timeout=20.0) as client:
-                res = await client.get(settings.SHALOM_API_URL, headers=headers)
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                res = await client.get(api_url, headers=headers)
         except httpx.HTTPError as e:
             logger.error(f"Error de red al sincronizar agencias: {e}")
             return {"success": False, "aplicado": False, "mensaje": f"No se pudo conectar con la API autorizada: {e}"}

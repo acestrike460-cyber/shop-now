@@ -213,20 +213,21 @@
                 <table class="w-full text-left text-xs text-gray-600 divide-y divide-gray-200" id="tabla-envios">
                     <thead class="bg-gray-50 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
                         <tr>
-                            <th class="px-4 py-3.5">Código / Fecha</th>
-                            <th class="px-4 py-3.5">Destinatario</th>
-                            <th class="px-4 py-3.5">Documento & Celular</th>
-                            <th class="px-4 py-3.5">Identidad</th>
-                            <th class="px-4 py-3.5">Agencia Shalom</th>
-                            <th class="px-4 py-3.5">Guía Shalom Pro</th>
-                            <th class="px-4 py-3.5">Estado Envío</th>
-                            <th class="px-4 py-3.5 text-right">Acciones</th>
+                            <th class="px-3.5 py-3.5">Código / Fecha</th>
+                            <th class="px-3.5 py-3.5">Destinatario</th>
+                            <th class="px-3.5 py-3.5">Documento & Celular</th>
+                            <th class="px-3.5 py-3.5">Identidad</th>
+                            <th class="px-3.5 py-3.5">Agencia Shalom</th>
+                            <th class="px-3.5 py-3.5">Tamaño Paquete</th>
+                            <th class="px-3.5 py-3.5">Guía Shalom Pro</th>
+                            <th class="px-3.5 py-3.5">Estado Envío</th>
+                            <th class="px-3.5 py-3.5 text-right">Acciones</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 font-medium" id="tabla-envios-body">
                         {% for envio in envios %}
                         <tr class="hover:bg-gray-50/80 transition-colors" data-id="{{ envio.id }}">
-                            <td class="px-4 py-3 whitespace-nowrap">
+                            <td class="px-3.5 py-3 whitespace-nowrap">
                                 <span class="font-mono font-bold text-shalom-700 block">{{ envio.codigo_registro }}</span>
                                 <span class="text-[10px] text-gray-400">{{ envio.fecha_registro[:16].replace('T', ' ') }}</span>
                                 {% if envio.fecha_despacho %}
@@ -235,15 +236,15 @@
                                 </span>
                                 {% endif %}
                             </td>
-                            <td class="px-4 py-3">
+                            <td class="px-3.5 py-3">
                                 <span class="font-bold text-gray-900 block">{{ envio.nombres }} {{ envio.apellido_paterno }}</span>
                                 <span class="text-[11px] text-gray-500">{{ envio.apellido_materno }}</span>
                             </td>
-                            <td class="px-4 py-3 whitespace-nowrap">
+                            <td class="px-3.5 py-3 whitespace-nowrap">
                                 <span class="font-mono text-gray-800 block">{{ envio.tipo_documento or 'DNI' }}: {{ envio.dni }}</span>
                                 <span class="font-mono text-gray-500">Cel: +51 {{ envio.celular }}</span>
                             </td>
-                            <td class="px-4 py-3 whitespace-nowrap">
+                            <td class="px-3.5 py-3 whitespace-nowrap">
                                 {% if envio.estado_verificacion_identidad == 'VERIFICADO_RENIEC_OFICIAL' %}
                                 <span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                                     <i data-lucide="check" class="w-3 h-3"></i>
@@ -255,11 +256,25 @@
                                 </span>
                                 {% endif %}
                             </td>
-                            <td class="px-4 py-3">
+                            <td class="px-3.5 py-3">
                                 <span class="font-semibold text-gray-900 block">{{ envio.nombre_agencia }}</span>
                                 <span class="text-[10px] text-gray-400 block">{{ envio.distrito }}, {{ envio.departamento }}</span>
                             </td>
-                            <td class="px-4 py-3 whitespace-nowrap" id="col-guia-{{ envio.id }}">
+                            <td class="px-3.5 py-3 whitespace-nowrap">
+                                <select 
+                                    onchange="cambiarTamanoPaquete('{{ envio.id }}', this.value, this)" 
+                                    class="text-[11px] font-bold rounded-lg px-2.5 py-1 border transition-all cursor-pointer bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100"
+                                    title="Selecciona el tamaño del paquete para Shalom Pro"
+                                >
+                                    <option value="PAQUETE XS" {% if (envio.tamano_paquete or 'PAQUETE XS') == 'PAQUETE XS' %}selected{% endif %}>📦 XS (0.5 kg)</option>
+                                    <option value="PAQUETE XXS" {% if envio.tamano_paquete == 'PAQUETE XXS' %}selected{% endif %}>📦 XXS (0.25 kg)</option>
+                                    <option value="SOBRE" {% if envio.tamano_paquete == 'SOBRE' %}selected{% endif %}>✉️ SOBRE (0 kg)</option>
+                                    <option value="PAQUETE S" {% if envio.tamano_paquete == 'PAQUETE S' %}selected{% endif %}>📦 S (2 kg)</option>
+                                    <option value="PAQUETE M" {% if envio.tamano_paquete == 'PAQUETE M' %}selected{% endif %}>📦 M (5 kg)</option>
+                                    <option value="PAQUETE L" {% if envio.tamano_paquete == 'PAQUETE L' %}selected{% endif %}>📦 L (10 kg)</option>
+                                </select>
+                            </td>
+                            <td class="px-3.5 py-3 whitespace-nowrap" id="col-guia-{{ envio.id }}">
                                 {% if envio.numero_guia_shalom %}
                                 <div>
                                     <span class="inline-flex items-center gap-1 font-mono font-bold text-[11px] text-shalom-800 bg-shalom-50 px-2 py-0.5 rounded-md border border-shalom-200">
@@ -317,7 +332,7 @@
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="8" class="px-4 py-8 text-center text-gray-400 text-xs">
+                            <td colspan="9" class="px-4 py-8 text-center text-gray-400 text-xs">
                                 No se han registrado solicitudes de envío aún.
                             </td>
                         </tr>
@@ -609,6 +624,25 @@
                         <p class="text-gray-500 text-[11px]">En el menú lateral de Shalom Pro, ve a <strong>Envíos ➔ Carga Masiva</strong> y arrastra el archivo. ¡Todas tus guías se emitirán en segundos!</p>
                     </div>
                 </div>
+            </div>
+
+            <!-- Selector de Tamaño de Mercadería Predeterminado -->
+            <div class="p-3.5 bg-amber-50/80 border border-amber-200/90 rounded-2xl space-y-2">
+                <label class="block font-bold text-gray-900 text-xs flex items-center gap-1.5">
+                    <i data-lucide="package" class="w-4 h-4 text-amber-700"></i>
+                    <span>Tamaño de mercadería a exportar:</span>
+                </label>
+                <select id="select-tamano-defecto-masivo" class="w-full text-xs font-bold rounded-xl px-3 py-2 bg-white border border-amber-300 text-gray-800 focus:ring-2 focus:ring-shalom-500">
+                    <option value="PAQUETE XS" selected>📦 PAQUETE XS (0.2 x 0.15 x 0.12 m - 0.5 kg) [Predeterminado Tienda]</option>
+                    <option value="PAQUETE XXS">📦 PAQUETE XXS (0.15 x 0.10 x 0.10 m - 0.25 kg)</option>
+                    <option value="SOBRE">✉️ SOBRE (Documentos y sobres planos - 0 kg)</option>
+                    <option value="PAQUETE S">📦 PAQUETE S (0.30 x 0.30 x 0.12 m - 2 kg)</option>
+                    <option value="PAQUETE M">📦 PAQUETE M (0.30 x 0.24 x 0.20 m - 5 kg)</option>
+                    <option value="PAQUETE L">📦 PAQUETE L (0.42 x 0.30 x 0.23 m - 10 kg)</option>
+                </select>
+                <p class="text-[10px] text-gray-500">
+                    Se aplicará a tus envíos (o puedes personalizar el tamaño de cada pedido individualmente con el selector de la tabla).
+                </p>
             </div>
 
             <!-- Opciones de descarga -->

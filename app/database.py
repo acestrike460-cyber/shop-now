@@ -73,7 +73,8 @@ class DatabaseManager:
             ("numero_guia_shalom", "TEXT"),
             ("estado_shalom_pro", "TEXT DEFAULT 'NO_EMITIDO'"),
             ("url_guia_pdf", "TEXT"),
-            ("monto_flete", "REAL")
+            ("monto_flete", "REAL"),
+            ("tamano_paquete", "TEXT DEFAULT 'PAQUETE XS'")
         ]
 
         for col, col_type in columnas_a_verificar:
@@ -103,15 +104,18 @@ class DatabaseManager:
             )
         """)
 
-        # Crear admin por defecto si no existe
+        # Crear o actualizar admin por defecto
+        hashed = hash_password(settings.ADMIN_PASSWORD)
         cur.execute("SELECT id FROM admin_users WHERE username = ?", (settings.ADMIN_USERNAME,))
-        if not cur.fetchone():
+        row = cur.fetchone()
+        if not row:
             now_iso = get_lima_now().isoformat()
-            hashed = hash_password(settings.ADMIN_PASSWORD)
             cur.execute("""
                 INSERT INTO admin_users (id, username, password_hash, nombre_completo, rol, activo, created_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             """, ("usr_admin_default", settings.ADMIN_USERNAME, hashed, "Administrador del Sistema", "ADMIN", 1, now_iso))
+        else:
+            cur.execute("UPDATE admin_users SET password_hash = ? WHERE username = ?", (hashed, settings.ADMIN_USERNAME))
 
         conn.commit()
         conn.close()
@@ -177,6 +181,7 @@ class DatabaseManager:
             "estado_shalom_pro": "NO_EMITIDO",
             "url_guia_pdf": None,
             "monto_flete": None,
+            "tamano_paquete": envio_data.get("tamano_paquete", "PAQUETE XS"),
             "estado_verificacion_identidad": envio_data.get("estado_verificacion_identidad", "MANUAL_NO_VERIFICADO"),
             "estado_registro": envio_data.get("estado_registro", "PENDIENTE"),
             "idempotency_key": idemp_key,
@@ -284,6 +289,23 @@ class DatabaseManager:
                 WHERE id = ? OR codigo_registro = ?
             """, (nuevo_estado, now_iso, id_envio, id_envio))
             
+        afectados = cur.rowcount
+        conn.commit()
+        conn.close()
+        return afectados > 0
+
+    @classmethod
+    def actualizar_tamano_envio(cls, id_envio: str, nuevo_tamano: str) -> bool:
+        """Actualiza el tamaño asignado al paquete (SOBRE, PAQUETE XXS, PAQUETE XS, PAQUETE S, etc.)."""
+        cls.init_db()
+        conn = cls.get_connection()
+        cur = conn.cursor()
+        now_iso = get_lima_now().isoformat()
+        cur.execute("""
+            UPDATE envios_shalom 
+            SET tamano_paquete = ?, updated_at = ? 
+            WHERE id = ? OR codigo_registro = ?
+        """, (nuevo_tamano.strip().upper(), now_iso, id_envio, id_envio))
         afectados = cur.rowcount
         conn.commit()
         conn.close()

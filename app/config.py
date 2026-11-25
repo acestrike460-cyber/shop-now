@@ -40,9 +40,9 @@ class Settings:
     IDENTIDAD_VENTANA_SEG: int = int(os.getenv("IDENTIDAD_VENTANA_SEG", "600"))
 
     # Catálogo de agencias Shalom
-    SHALOM_API_URL: str = os.getenv("SHALOM_API_URL", "").strip()
-    SHALOM_API_KEY: str = os.getenv("SHALOM_API_KEY", "").strip()
-    SHALOM_API_SOURCE_NAME: str = os.getenv("SHALOM_API_SOURCE_NAME", "API autorizada de Shalom").strip()
+    SHALOM_API_URL: str = os.getenv("SHALOM_API_URL", "https://api.shalom-api-peru.com/v1/agencies").strip()
+    SHALOM_API_KEY: str = os.getenv("SHALOM_API_KEY", "sk_crywlilpru72vge7jeayhljmgvcc3fm2wnvzvsshujrf7n7va3cq").strip()
+    SHALOM_API_SOURCE_NAME: str = os.getenv("SHALOM_API_SOURCE_NAME", "API Shalom Perú Oficial (570 agencias)").strip()
     AGENCIAS_SOLO_DESTINO: bool = _bool("AGENCIAS_SOLO_DESTINO", "true")
     AGENCIAS_MAX_BAJA_PCT: float = float(os.getenv("AGENCIAS_MAX_BAJA_PCT", "30"))
     AGENCIAS_DIAS_VIGENCIA: int = int(os.getenv("AGENCIAS_DIAS_VIGENCIA", "30"))
@@ -50,12 +50,13 @@ class Settings:
     # ==========================================================================
     # INTEGRACIÓN CON SHALOM PRO (EMISIÓN AUTOMÁTICA O CON 1 CLIC)
     # ==========================================================================
-    # Puedes configurar aquí tu cuenta de Shalom Pro cuando la tengas lista:
-    SHALOM_PRO_MODO: str = os.getenv("SHALOM_PRO_MODO", "SIMULADOR").upper()  # 'SIMULADOR' o 'PRODUCCION'
-    SHALOM_PRO_API_URL: str = os.getenv("SHALOM_PRO_API_URL", "").strip().rstrip("/")
-    SHALOM_PRO_API_KEY: str = os.getenv("SHALOM_PRO_API_KEY", "").strip()
-    SHALOM_PRO_RUC_REMITENTE: str = os.getenv("SHALOM_PRO_RUC_REMITENTE", "").strip()
-    SHALOM_PRO_RAZON_SOCIAL: str = os.getenv("SHALOM_PRO_RAZON_SOCIAL", "MI TIENDA E-COMMERCE").strip()
+    SHALOM_PRO_MODO: str = os.getenv("SHALOM_PRO_MODO", "PRODUCCION").upper()  # 'SIMULADOR' o 'PRODUCCION'
+    SHALOM_PRO_API_URL: str = os.getenv("SHALOM_PRO_API_URL", "https://api.shalom-api-peru.com").strip().rstrip("/")
+    SHALOM_PRO_API_KEY: str = os.getenv("SHALOM_PRO_API_KEY", "sk_crywlilpru72vge7jeayhljmgvcc3fm2wnvzvsshujrf7n7va3cq").strip()
+    SHALOM_PRO_EMAIL: str = os.getenv("SHALOM_PRO_EMAIL", "alexandra.calero0202@gmail.com").strip()
+    SHALOM_PRO_PASSWORD: str = os.getenv("SHALOM_PRO_PASSWORD", "Alexandra020203!").strip()
+    SHALOM_PRO_RUC_REMITENTE: str = os.getenv("SHALOM_PRO_RUC_REMITENTE", "20123456789").strip()
+    SHALOM_PRO_RAZON_SOCIAL: str = os.getenv("SHALOM_PRO_RAZON_SOCIAL", "SHOP NOW").strip()
     SHALOM_PRO_TELEFONO_REMITENTE: str = os.getenv("SHALOM_PRO_TELEFONO_REMITENTE", "987654321").strip()
     SHALOM_PRO_AGENCIA_ORIGEN_ID: str = os.getenv("SHALOM_PRO_AGENCIA_ORIGEN_ID", "101").strip()  # ID de agencia donde dejas paquetes
 

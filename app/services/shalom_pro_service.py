@@ -87,27 +87,76 @@ class ShalomProService:
         # ----------------------------------------------------------------------
         if cls.esta_configurado():
             try:
+                mapa_productos = {
+                    "SOBRE": 3,
+                    "PAQUETE XXS": 1096,
+                    "PAQUETE XS": 1090,
+                    "PAQUETE S": 5,
+                    "PAQUETE M": 1093,
+                    "PAQUETE L": 2,
+                }
+                tamano_envio = str(envio.get("tamano_paquete") or "PAQUETE XS").strip().upper()
+                product_id = mapa_productos.get(tamano_envio, 1090)
+
+                # Generar código de recojo seguro de 4 dígitos no consecutivos
+                chars_no_seq = string.digits
+                pickup_code = "".join(secrets.choice(chars_no_seq) for _ in range(4))
+                if pickup_code in ("1234", "0000", "1111", "2222", "3333", "4444", "5555", "6666", "7777", "8888", "9999", "4321"):
+                    pickup_code = "8391"
+
+                cel_clean = "".join(filter(str.isdigit, str(envio.get("celular", "987654321"))))
+                cel_int = int(cel_clean) if cel_clean else 987654321
+
+                nombres = str(envio.get("nombres", "")).strip().upper()
+                apellidos = f"{envio.get('apellido_paterno', '')} {envio.get('apellido_materno', '')}".strip().upper()
+                if not apellidos:
+                    apellidos = nombres
+
+                payload_api = {
+                    "origin_terminal_id": int(settings.SHALOM_PRO_AGENCIA_ORIGEN_ID or 101),
+                    "destiny_terminal_id": ter_destino_id,
+                    "product_id": product_id,
+                    "pickup_code": pickup_code,
+                    "declaracion_jurada": "ropa" if "ropa" in (contenido or "").lower() else "art",
+                    "receiver": {
+                        "document": str(envio.get("dni", "")).strip(),
+                        "document_type": str(envio.get("tipo_documento", "DNI")).strip().upper(),
+                        "name": nombres,
+                        "last_name": apellidos,
+                        "phone": cel_int
+                    }
+                }
+
                 headers = {
                     "Content-Type": "application/json",
                     "Accept": "application/json",
-                    "Authorization": f"Bearer {settings.SHALOM_PRO_API_KEY}",
-                    "X-Client-ID": settings.SHALOM_PRO_RUC_REMITENTE
+                    "X-API-Key": settings.SHALOM_PRO_API_KEY,
+                    "Authorization": f"Bearer {settings.SHALOM_PRO_API_KEY}"
                 }
-                url = f"{settings.SHALOM_PRO_API_URL}/v1/shipments"
+                if getattr(settings, "SHALOM_PRO_EMAIL", None) and getattr(settings, "SHALOM_PRO_PASSWORD", None):
+                    headers["X-Shalom-Email"] = settings.SHALOM_PRO_EMAIL
+                    headers["X-Shalom-Password"] = settings.SHALOM_PRO_PASSWORD
 
-                async with httpx.AsyncClient(timeout=60.0) as client:
-                    resp = await client.post(url, json=payload_shalom, headers=headers)
+                url = f"{settings.SHALOM_PRO_API_URL}/v1/orders"
+
+                async with httpx.AsyncClient(timeout=45.0) as client:
+                    resp = await client.post(url, json=payload_api, headers=headers)
                     if resp.status_code in (200, 201):
                         data = resp.json()
+                        num_guia = str(data.get("guia") or data.get("numero_guia") or data.get("tracking_number") or "").strip()
+                        serie = str(data.get("serie", "V286")).strip()
+                        codigo_seg = str(data.get("codigo", "")).strip()
+                        monto = 12.00 if envio.get("departamento") == "Lima" else 18.00
                         return {
                             "success": True,
                             "modo": "PRODUCCION",
-                            "numero_guia": data.get("numero_guia", data.get("tracking_number")),
-                            "serie_guia": data.get("serie_guia", "T001"),
-                            "url_pdf_guia": data.get("url_pdf", f"https://pro.shalom.pe/guias/{data.get('numero_guia')}.pdf"),
-                            "monto_flete": data.get("monto_flete", 15.00),
+                            "numero_guia": num_guia,
+                            "serie_guia": serie,
+                            "codigo_seguridad": codigo_seg,
+                            "url_pdf_guia": f"https://pro.shalom.pe/tracking?guia={num_guia}",
+                            "monto_flete": monto,
                             "estado_shalom": "ORDEN_GENERADA",
-                            "mensaje": "¡Guía oficial emitida con éxito en Shalom Pro!",
+                            "mensaje": f"¡Guía oficial emitida con éxito en Shalom Pro! Guía: {num_guia} (Serie {serie}, Código {codigo_seg})",
                             "raw_response": data
                         }
                     else:
@@ -148,7 +197,7 @@ class ShalomProService:
         }
 
     @classmethod
-    def generar_excel_masivo_oficial(cls, envios: list, origen: str = "LIMA") -> bytes:
+    def generar_excel_masivo_oficial(cls, envios: list, origen: str = "LIMA", tamano_defecto: str = "PAQUETE XS") -> bytes:
         """
         Genera el archivo Excel (.xlsx) oficial exactamente en el formato
         exigido por la plataforma Shalom Pro (pro.shalom.pe) en su módulo de Envíos Masivos.
@@ -156,6 +205,11 @@ class ShalomProService:
         import io
         import openpyxl
         from pathlib import Path
+        
+        tamanos_validos = ["SOBRE", "PAQUETE XXS", "PAQUETE XS", "PAQUETE S", "PAQUETE M", "PAQUETE L"]
+        tamano_defecto_clean = tamano_defecto.strip().upper() if tamano_defecto else "PAQUETE XS"
+        if tamano_defecto_clean not in tamanos_validos:
+            tamano_defecto_clean = "PAQUETE XS"
         
         template_path = Path(__file__).resolve().parent.parent.parent / "data" / "plantilla_oficial_shalom_pro.xlsx"
         if not template_path.exists():
@@ -219,7 +273,12 @@ class ShalomProService:
             ws.cell(row=row_idx, column=5).value = nro_orden
             ws.cell(row=row_idx, column=6).value = origen.upper()
             ws.cell(row=row_idx, column=7).value = destino_final
-            ws.cell(row=row_idx, column=8).value = "PAQUETE S"
+            
+            # Tamaño de mercadería (Default: PAQUETE XS)
+            tamano_envio = str(e.get("tamano_paquete") or tamano_defecto_clean).strip().upper()
+            if tamano_envio not in tamanos_validos:
+                tamano_envio = tamano_defecto_clean
+            ws.cell(row=row_idx, column=8).value = tamano_envio
             ws.cell(row=row_idx, column=13).value = 1
 
         out = io.BytesIO()

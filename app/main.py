@@ -13,6 +13,7 @@ from app.models import (
     ReniecVerificationRequest, 
     EnvioCreateRequest, 
     EnvioStatusUpdateRequest,
+    EnvioTamanoUpdateRequest,
     AdminLoginRequest,
     AgenciaToggleRequest,
     AgenciaImportRequest,
@@ -425,6 +426,25 @@ async def api_admin_update_envio(
         raise HTTPException(status_code=404, detail="Envío no encontrado")
     return {"success": True, "mensaje": f"Estado actualizado a {payload.estado_registro}"}
 
+@app.put("/api/admin/envios/{id_envio}/tamano")
+async def api_admin_update_envio_tamano(
+    id_envio: str,
+    payload: EnvioTamanoUpdateRequest,
+    admin: dict = Depends(get_current_admin)
+):
+    """Permite al operador cambiar el tamaño del paquete de un envío fácilmente (SOBRE, PAQUETE XXS, PAQUETE XS, PAQUETE S, etc.)."""
+    exito = DatabaseManager.actualizar_tamano_envio(
+        id_envio=id_envio,
+        nuevo_tamano=payload.tamano_paquete
+    )
+    if not exito:
+        raise HTTPException(status_code=404, detail="Envío no encontrado")
+    return {
+        "success": True, 
+        "tamano_paquete": payload.tamano_paquete, 
+        "mensaje": f"Tamaño actualizado a {payload.tamano_paquete}"
+    }
+
 @app.post("/api/admin/envios/{id_envio}/emitir-shalom-pro")
 async def api_admin_emitir_guia_shalom_pro(
     id_envio: str,
@@ -531,6 +551,7 @@ async def api_admin_exportar_csv(admin: dict = Depends(get_current_admin)):
 @app.get("/api/admin/envios/exportar-shalom-pro")
 async def api_admin_exportar_plantilla_shalom_pro(
     solo_pendientes: bool = Query(True),
+    tamano_defecto: str = Query("PAQUETE XS"),
     admin: dict = Depends(get_current_admin)
 ):
     """
@@ -540,7 +561,7 @@ async def api_admin_exportar_plantilla_shalom_pro(
     filtro = "PENDIENTE" if solo_pendientes else "TODOS"
     envios = DatabaseManager.obtener_envios(filtro_estado=filtro, limite=5000)
     
-    excel_bytes = ShalomProService.generar_excel_masivo_oficial(envios)
+    excel_bytes = ShalomProService.generar_excel_masivo_oficial(envios, tamano_defecto=tamano_defecto)
     tipo_nombre = "pendientes" if solo_pendientes else "todos"
     filename = f"Formato-Pro-Masivo-{tipo_nombre}_{get_lima_now().strftime('%Y%m%d_%H%M%S')}.xlsx"
     

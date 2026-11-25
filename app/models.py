@@ -47,6 +47,9 @@ class EnvioCreateRequest(BaseModel):
     # Fecha de despacho deseada
     fecha_despacho: Optional[str] = ""
     
+    # Tamaño de mercadería Shalom Pro (Default: PAQUETE XS)
+    tamano_paquete: Optional[str] = Field(default="PAQUETE XS", description="SOBRE, PAQUETE XXS, PAQUETE XS, PAQUETE S, PAQUETE M, PAQUETE L")
+
     # Estado de verificación
     estado_verificacion_identidad: str = Field(
         default="MANUAL_NO_VERIFICADO",
@@ -93,6 +96,18 @@ class EnvioCreateRequest(BaseModel):
 class EnvioStatusUpdateRequest(BaseModel):
     estado_registro: str = Field(..., description="PENDIENTE, CONFIRMADO, EN_PREPARACION, ENVIADO, ENTREGADO, CANCELADO")
     notas_admin: Optional[str] = None
+
+class EnvioTamanoUpdateRequest(BaseModel):
+    tamano_paquete: str = Field(..., description="SOBRE, PAQUETE XXS, PAQUETE XS, PAQUETE S, PAQUETE M, PAQUETE L")
+
+    @field_validator("tamano_paquete")
+    @classmethod
+    def validate_tamano(cls, v: str) -> str:
+        t = v.strip().upper()
+        permitidos = ["SOBRE", "PAQUETE XXS", "PAQUETE XS", "PAQUETE S", "PAQUETE M", "PAQUETE L"]
+        if t not in permitidos:
+            raise ValueError(f"Tamaño inválido. Debe ser uno de: {', '.join(permitidos)}")
+        return t
 
 class AdminLoginRequest(BaseModel):
     username: str
