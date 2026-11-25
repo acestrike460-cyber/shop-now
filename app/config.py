@@ -10,7 +10,7 @@ def _bool(name: str, default: str) -> bool:
 
 class Settings:
     # Negocio e identidad
-    BUSINESS_NAME: str = os.getenv("BUSINESS_NAME", "Tienda Express Perú")
+    BUSINESS_NAME: str = os.getenv("BUSINESS_NAME", "SHOP NOW")
     BUSINESS_WHATSAPP: str = os.getenv("BUSINESS_WHATSAPP", "").strip()  # Ej: 51987654321
     APP_TITLE: str = "Registro de Envíos Shalom | " + os.getenv("BUSINESS_NAME", "Tienda Express Perú")
     APP_VERSION: str = "3.1.0"
