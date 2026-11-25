@@ -32,6 +32,27 @@ class ShalomProService:
         return bool(settings.SHALOM_PRO_API_URL and settings.SHALOM_PRO_API_KEY and settings.SHALOM_PRO_MODO == "PRODUCCION")
 
     @classmethod
+    def generar_codigo_recojo_seguro(cls) -> str:
+        """
+        Genera un código de recojo de 4 dígitos 100% aceptado por las reglas de seguridad de Shalom Pro.
+        Garantiza:
+        - Diferencia absoluta >= 2 entre dígitos adyacentes (nunca consecutivos).
+        - No secuencias ascendentes ni descendentes (evita 1234, 2345, 6543, etc.).
+        - Al menos 3 dígitos únicos distintos (nunca repetidos ni idénticos).
+        """
+        while True:
+            d1 = secrets.randbelow(9) + 1
+            d2 = secrets.choice([x for x in range(10) if abs(x - d1) >= 2])
+            d3 = secrets.choice([x for x in range(10) if abs(x - d2) >= 2 and x != d1])
+            d4 = secrets.choice([x for x in range(10) if abs(x - d3) >= 2 and x != d2 and x != d1])
+            code = f"{d1}{d2}{d3}{d4}"
+            nums = [int(c) for c in code]
+            asc = any(nums[i+1] == nums[i] + 1 and nums[i+2] == nums[i] + 2 for i in range(2))
+            desc = any(nums[i+1] == nums[i] - 1 and nums[i+2] == nums[i] - 2 for i in range(2))
+            if not asc and not desc and len(set(nums)) >= 3:
+                return code
+
+    @classmethod
     async def emitir_guia_oficial(
         cls, 
         envio: Dict[str, Any],
@@ -48,11 +69,25 @@ class ShalomProService:
         """
         now = get_lima_now()
 
-        # Extraer ter_id numérico de la agencia seleccionada (ej: SHA-102 -> 102)
+        # Extraer y resolver ter_id numérico de la agencia seleccionada
         cod_agencia = str(envio.get("codigo_agencia", "101")).replace("SHA-", "").strip()
-        try:
+        nom_agencia = str(envio.get("nombre_agencia", "")).strip().lower()
+        ter_destino_id = None
+
+        if cod_agencia.isdigit():
             ter_destino_id = int(cod_agencia)
-        except ValueError:
+        else:
+            try:
+                from app.services.shalom_service import ShalomService
+                for a in ShalomService.cargar_agencias():
+                    if str(a.get("codigo", "")).lower() == cod_agencia.lower() or str(a.get("nombre", "")).lower() == nom_agencia:
+                        if str(a.get("id", "")).isdigit():
+                            ter_destino_id = int(a["id"])
+                            break
+            except Exception as e_ag:
+                logger.warning(f"Error resolviendo agencia destino por catálogo: {e_ag}")
+
+        if not ter_destino_id:
             ter_destino_id = 101
 
         # Construir payload canónico para Shalom Pro
@@ -98,11 +133,8 @@ class ShalomProService:
                 tamano_envio = str(envio.get("tamano_paquete") or "PAQUETE XS").strip().upper()
                 product_id = mapa_productos.get(tamano_envio, 1090)
 
-                # Generar código de recojo seguro de 4 dígitos no consecutivos
-                chars_no_seq = string.digits
-                pickup_code = "".join(secrets.choice(chars_no_seq) for _ in range(4))
-                if pickup_code in ("1234", "0000", "1111", "2222", "3333", "4444", "5555", "6666", "7777", "8888", "9999", "4321"):
-                    pickup_code = "8391"
+                # Generar código de recojo seguro de 4 dígitos 100% válido para Shalom Pro
+                pickup_code = cls.generar_codigo_recojo_seguro()
 
                 cel_clean = "".join(filter(str.isdigit, str(envio.get("celular", "987654321"))))
                 cel_int = int(cel_clean) if cel_clean else 987654321
@@ -158,8 +190,19 @@ class ShalomProService:
                 url = f"{settings.SHALOM_PRO_API_URL}/v1/orders"
 
                 async with httpx.AsyncClient(timeout=45.0) as client:
-                    resp = await client.post(url, json=payload_api, headers=headers)
-                    if resp.status_code in (200, 201):
+                    resp = None
+                    # Intentar hasta 3 veces con clave regenerada si Shalom rechaza por seguridad de clave
+                    for intento in range(3):
+                        resp = await client.post(url, json=payload_api, headers=headers)
+                        if resp.status_code in (200, 201):
+                            break
+                        if resp.status_code == 422 and ("clave" in resp.text.lower() or "consecutiv" in resp.text.lower()):
+                            logger.warning(f"Reintentando emisión Shalom Pro con nueva clave segura (intento {intento+1})")
+                            payload_api["pickup_code"] = cls.generar_codigo_recojo_seguro()
+                            continue
+                        break
+
+                    if resp and resp.status_code in (200, 201):
                         data = resp.json()
                         num_guia = str(data.get("guia") or data.get("numero_guia") or data.get("tracking_number") or "").strip()
                         serie = str(data.get("serie", "V286")).strip()
@@ -180,11 +223,12 @@ class ShalomProService:
                             "raw_response": data
                         }
                     else:
-                        logger.error(f"Error Shalom Pro API HTTP {resp.status_code}: {resp.text}")
+                        resp_text = resp.text if resp else "Sin respuesta"
+                        logger.error(f"Error Shalom Pro API HTTP {resp.status_code if resp else 'N/A'}: {resp_text}")
                         return {
                             "success": False,
                             "modo": "PRODUCCION",
-                            "mensaje": f"Shalom Pro respondió con error HTTP {resp.status_code}: {resp.text[:200]}"
+                            "mensaje": f"Shalom Pro respondió con error: {resp_text[:250]}"
                         }
             except Exception as e:
                 logger.error(f"Excepción conectando con Shalom Pro API: {e}")
