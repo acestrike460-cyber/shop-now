@@ -146,3 +146,82 @@ class ShalomProService:
             "mensaje": f"Pre-guía generada exitosamente. Lista para sincronizar en Shalom Pro.",
             "datos_payload": payload_shalom
         }
+
+    @classmethod
+    def generar_excel_masivo_oficial(cls, envios: list, origen: str = "LIMA") -> bytes:
+        """
+        Genera el archivo Excel (.xlsx) oficial exactamente en el formato
+        exigido por la plataforma Shalom Pro (pro.shalom.pe) en su módulo de Envíos Masivos.
+        """
+        import io
+        import openpyxl
+        from pathlib import Path
+        
+        template_path = Path(__file__).resolve().parent.parent.parent / "data" / "plantilla_oficial_shalom_pro.xlsx"
+        if not template_path.exists():
+            wb = openpyxl.Workbook()
+            ws = wb.active
+            ws.title = "Hoja1"
+            ws.append([
+                "DESTINATARIO (DOC)", "TELF. DESTINATARIO", "CONTACTO (DOC)", "TELF. CONTACTO",
+                "NRO GRR", "ORIGEN", "DESTINO", "MERCADERIA", "ALTO", "ANCHO", "LARGO", "PESO", "CANTIDAD"
+            ])
+            destinos_validos = []
+        else:
+            wb = openpyxl.load_workbook(template_path)
+            ws = wb["Hoja1"]
+            # Limpiar filas 2 a 500 para escribir los datos limpios
+            for r in range(2, 501):
+                ws.cell(row=r, column=1).value = None
+                ws.cell(row=r, column=2).value = None
+                ws.cell(row=r, column=3).value = None
+                ws.cell(row=r, column=4).value = None
+                ws.cell(row=r, column=5).value = None
+                ws.cell(row=r, column=6).value = None
+                ws.cell(row=r, column=7).value = None
+                ws.cell(row=r, column=8).value = None
+                ws.cell(row=r, column=13).value = None
+
+            destinos_validos = []
+            if "Hoja2" in wb.sheetnames:
+                ws_h2 = wb["Hoja2"]
+                destinos_validos = [str(ws_h2.cell(row=i, column=2).value).strip() for i in range(1, ws_h2.max_row+1) if ws_h2.cell(row=i, column=2).value]
+
+        for idx, e in enumerate(envios):
+            row_idx = 2 + idx
+            dni_clean = "".join(filter(str.isdigit, str(e.get("dni", ""))))
+            cel_clean = "".join(filter(str.isdigit, str(e.get("celular", ""))))
+            nro_orden = e.get("codigo_registro", "")
+
+            nom_agencia = str(e.get("nombre_agencia", "")).strip().upper()
+            distrito = str(e.get("distrito", "")).strip().upper()
+
+            # Encontrar la mejor coincidencia en la lista oficial de agencias de Shalom Pro
+            destino_final = nom_agencia
+            for d in destinos_validos:
+                d_upper = d.upper()
+                if nom_agencia == d_upper or nom_agencia in d_upper or d_upper in nom_agencia or distrito == d_upper or distrito in d_upper:
+                    destino_final = d
+                    break
+
+            try:
+                ws.cell(row=row_idx, column=1).value = int(dni_clean) if dni_clean else None
+            except ValueError:
+                ws.cell(row=row_idx, column=1).value = dni_clean
+
+            try:
+                ws.cell(row=row_idx, column=2).value = int(cel_clean) if cel_clean else None
+            except ValueError:
+                ws.cell(row=row_idx, column=2).value = cel_clean
+
+            ws.cell(row=row_idx, column=3).value = None
+            ws.cell(row=row_idx, column=4).value = None
+            ws.cell(row=row_idx, column=5).value = nro_orden
+            ws.cell(row=row_idx, column=6).value = origen.upper()
+            ws.cell(row=row_idx, column=7).value = destino_final
+            ws.cell(row=row_idx, column=8).value = "PAQUETE S"
+            ws.cell(row=row_idx, column=13).value = 1
+
+        out = io.BytesIO()
+        wb.save(out)
+        return out.getvalue()

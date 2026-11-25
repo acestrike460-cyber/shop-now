@@ -534,65 +534,19 @@ async def api_admin_exportar_plantilla_shalom_pro(
     admin: dict = Depends(get_current_admin)
 ):
     """
-    Exporta los pedidos en el formato oficial de Carga Masiva para Shalom Pro (pro.shalom.pe).
-    Permite importar decenas de encomiendas de golpe en Shalom Pro sin necesidad de API.
+    Exporta los pedidos en el archivo Excel oficial (.xlsx) de Shalom Pro (Formato-Pro-Masivo.xlsx).
+    Listo para arrastrar directamente en pro.shalom.pe sin errores de formato.
     """
     filtro = "PENDIENTE" if solo_pendientes else "TODOS"
     envios = DatabaseManager.obtener_envios(filtro_estado=filtro, limite=5000)
-    output = io.StringIO()
-    writer = csv.writer(output, delimiter=',')
-
-    # Cabeceras canónicas para Carga Masiva Shalom Pro
-    writer.writerow([
-        "N_ORDEN",
-        "TIPO_DOC",
-        "NUMERO_DOC",
-        "DESTINATARIO",
-        "CELULAR",
-        "COD_AGENCIA_DESTINO",
-        "AGENCIA_DESTINO",
-        "DEPARTAMENTO",
-        "PROVINCIA",
-        "DISTRITO",
-        "CONTENIDO",
-        "BULTOS",
-        "PESO_KG",
-        "MODALIDAD_PAGO",
-        "CLAVE_RETIRO",
-        "FECHA_DESPACHO"
-    ])
-
-    for e in envios:
-        nombre_completo = f"{e.get('nombres', '')} {e.get('apellido_paterno', '')} {e.get('apellido_materno', '')}".strip()
-        cel = e.get("celular", "")
-        clave_retiro = cel[-4:] if len(cel) >= 4 else "1234"
-        cod_ag = str(e.get("codigo_agencia", "")).replace("SHA-", "").strip()
-
-        writer.writerow([
-            e.get("codigo_registro", ""),
-            e.get("tipo_documento", "DNI"),
-            e.get("dni", ""),
-            nombre_completo,
-            cel,
-            cod_ag,
-            e.get("nombre_agencia", ""),
-            e.get("departamento", ""),
-            e.get("provincia", ""),
-            e.get("distrito", ""),
-            "MERCADERÍA DIVERSA",
-            1,
-            1.0,
-            "PAGO EN DESTINO",
-            clave_retiro,
-            e.get("fecha_despacho", "")
-        ])
-
-    output.seek(0)
+    
+    excel_bytes = ShalomProService.generar_excel_masivo_oficial(envios)
     tipo_nombre = "pendientes" if solo_pendientes else "todos"
-    filename = f"carga_masiva_shalom_pro_{tipo_nombre}_{get_lima_now().strftime('%Y%m%d_%H%M%S')}.csv"
+    filename = f"Formato-Pro-Masivo-{tipo_nombre}_{get_lima_now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    
     return StreamingResponse(
-        io.BytesIO(output.getvalue().encode("utf-8-sig")),
-        media_type="text/csv",
+        io.BytesIO(excel_bytes),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
