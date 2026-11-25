@@ -144,7 +144,7 @@ function renderizarTablaAdmin(envios) {
             celdaShalomPro = `
                 <button 
                     type="button" 
-                    onclick="abrirModalEmitirShalomPro('${e.id}', '${e.codigo_registro}', '${nombreDest}', '${agDest}')" 
+                    onclick="abrirModalEmitirShalomPro('${e.codigo_registro}', '${e.codigo_registro}', '${nombreDest}', '${agDest}')" 
                     class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-shalom-700 to-red-600 hover:from-shalom-800 hover:to-red-700 text-white font-bold text-[10px] shadow-sm transition-all cursor-pointer"
                     title="Generar guía oficial en Shalom Pro con 1 solo clic"
                 >

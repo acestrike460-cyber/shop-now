@@ -108,9 +108,15 @@ class ShalomProService:
                 cel_int = int(cel_clean) if cel_clean else 987654321
 
                 nombres = str(envio.get("nombres", "")).strip().upper()
-                apellidos = f"{envio.get('apellido_paterno', '')} {envio.get('apellido_materno', '')}".strip().upper()
+                paterno = str(envio.get("apellido_paterno", "")).strip().upper()
+                materno = str(envio.get("apellido_materno", "")).strip().upper()
+                if not materno or materno in ("NO_ESPECIFICADO", "NO ESPECIFICADO", "-"):
+                    materno = paterno or "PEREZ"
+                if not paterno:
+                    paterno = materno or "PEREZ"
+                apellidos = f"{paterno} {materno}".strip().upper()
                 if not apellidos:
-                    apellidos = nombres
+                    apellidos = f"{nombres} {nombres}"
 
                 payload_api = {
                     "origin_terminal_id": int(settings.SHALOM_PRO_AGENCIA_ORIGEN_ID or 101),
