@@ -120,6 +120,80 @@ class DatabaseManager:
         conn.commit()
         conn.close()
 
+        # Si Supabase está configurado, sincronizar registros existentes
+        cls.sync_from_supabase()
+
+    @classmethod
+    def sync_from_supabase(cls):
+        """Descarga registros desde Supabase para poblar la base local al iniciar el contenedor."""
+        if not settings.SUPABASE_URL or not settings.SUPABASE_KEY:
+            return
+        try:
+            url = f"{settings.SUPABASE_URL}/rest/v1/envios_shalom?select=*"
+            headers = {
+                "apikey": settings.SUPABASE_KEY,
+                "Authorization": f"Bearer {settings.SUPABASE_KEY}"
+            }
+            with httpx.Client(timeout=8.0) as client:
+                res = client.get(url, headers=headers)
+                if res.status_code == 200:
+                    filas = res.json()
+                    if isinstance(filas, list) and len(filas) > 0:
+                        conn = cls.get_connection()
+                        cur = conn.cursor()
+                        valid_cols = [
+                            'id', 'codigo_registro', 'tipo_documento', 'dni', 'nombres',
+                            'apellido_paterno', 'apellido_materno', 'celular', 'departamento',
+                            'provincia', 'distrito', 'codigo_agencia', 'nombre_agencia',
+                            'direccion_agencia', 'referencia_agencia', 'fecha_despacho',
+                            'numero_guia_shalom', 'estado_shalom_pro', 'url_guia_pdf',
+                            'monto_flete', 'tamano_paquete', 'estado_verificacion_identidad',
+                            'estado_registro', 'idempotency_key', 'ip_origen', 'notas_admin',
+                            'fecha_registro', 'created_at', 'updated_at'
+                        ]
+                        for r in filas:
+                            cols = [k for k in r.keys() if k in valid_cols]
+                            placeholders = ', '.join(['?'] * len(cols))
+                            col_names = ', '.join(cols)
+                            vals = [r[c] for c in cols]
+                            cur.execute(f"INSERT OR REPLACE INTO envios_shalom ({col_names}) VALUES ({placeholders})", vals)
+                        conn.commit()
+                        conn.close()
+        except Exception as e:
+            logger.warning(f"Error sincronizando desde Supabase: {e}")
+
+    @classmethod
+    def _update_in_supabase(cls, tabla: str, id_envio: str, data: Dict[str, Any]):
+        if not settings.SUPABASE_URL or not settings.SUPABASE_KEY:
+            return
+        try:
+            url = f"{settings.SUPABASE_URL}/rest/v1/{tabla}"
+            headers = {
+                "apikey": settings.SUPABASE_KEY,
+                "Authorization": f"Bearer {settings.SUPABASE_KEY}",
+                "Content-Type": "application/json",
+                "Prefer": "return=minimal"
+            }
+            with httpx.Client(timeout=5.0) as client:
+                client.patch(f"{url}?or=(id.eq.{id_envio},codigo_registro.eq.{id_envio})", headers=headers, json=data)
+        except Exception as e:
+            logger.warning(f"No se pudo actualizar en Supabase: {e}")
+
+    @classmethod
+    def _delete_in_supabase(cls, id_envio: str):
+        if not settings.SUPABASE_URL or not settings.SUPABASE_KEY:
+            return
+        try:
+            url = f"{settings.SUPABASE_URL}/rest/v1/envios_shalom"
+            headers = {
+                "apikey": settings.SUPABASE_KEY,
+                "Authorization": f"Bearer {settings.SUPABASE_KEY}"
+            }
+            with httpx.Client(timeout=5.0) as client:
+                client.delete(f"{url}?or=(id.eq.{id_envio},codigo_registro.eq.{id_envio})", headers=headers)
+        except Exception as e:
+            logger.warning(f"No se pudo eliminar en Supabase: {e}")
+
     @classmethod
     async def _insert_in_supabase(cls, tabla: str, data: Dict[str, Any]) -> bool:
         if not settings.SUPABASE_URL or not settings.SUPABASE_KEY:
@@ -267,6 +341,17 @@ class DatabaseManager:
         afectados = cur.rowcount
         conn.commit()
         conn.close()
+
+        if afectados > 0:
+            cls._update_in_supabase("envios_shalom", id_envio, {
+                "numero_guia_shalom": numero_guia,
+                "url_guia_pdf": url_pdf,
+                "monto_flete": monto_flete,
+                "estado_shalom_pro": estado_shalom,
+                "estado_registro": "EN_PREPARACION",
+                "updated_at": now_iso
+            })
+
         return afectados > 0
 
     @classmethod
@@ -276,7 +361,9 @@ class DatabaseManager:
         cur = conn.cursor()
         now_iso = get_lima_now().isoformat()
         
+        datos_supa = {"estado_registro": nuevo_estado, "updated_at": now_iso}
         if notas_admin is not None:
+            datos_supa["notas_admin"] = notas_admin
             cur.execute("""
                 UPDATE envios_shalom 
                 SET estado_registro = ?, notas_admin = ?, updated_at = ? 
@@ -292,6 +379,10 @@ class DatabaseManager:
         afectados = cur.rowcount
         conn.commit()
         conn.close()
+
+        if afectados > 0:
+            cls._update_in_supabase("envios_shalom", id_envio, datos_supa)
+
         return afectados > 0
 
     @classmethod
@@ -309,6 +400,13 @@ class DatabaseManager:
         afectados = cur.rowcount
         conn.commit()
         conn.close()
+
+        if afectados > 0:
+            cls._update_in_supabase("envios_shalom", id_envio, {
+                "tamano_paquete": nuevo_tamano.strip().upper(),
+                "updated_at": now_iso
+            })
+
         return afectados > 0
 
     @classmethod
@@ -321,6 +419,10 @@ class DatabaseManager:
         afectados = cur.rowcount
         conn.commit()
         conn.close()
+
+        if afectados > 0:
+            cls._delete_in_supabase(id_envio)
+
         return afectados > 0
 
     @classmethod
