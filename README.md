@@ -87,7 +87,7 @@ python run.py
 - **Formulario Público:** [http://localhost:8000/](http://localhost:8000/)
 - **Panel Administrativo:** [http://localhost:8000/admin](http://localhost:8000/admin)
   - Usuario: `admin`
-  - Contraseña: `Admin2026!Shalom`
+  - Contraseña: `admin2026`
 
 ### 2. Ejecutar Pruebas Automatizadas
 ```powershell

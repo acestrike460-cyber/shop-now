@@ -1,0 +1,80 @@
+/* Estilos para Checkout Wizard Shalom Perú (Idéntico a las capturas) */
+
+/* Ocultar barra de scroll en navegadores WebKit manteniendo el scroll horizontal */
+.scrollbar-none::-webkit-scrollbar {
+    display: none;
+}
+.scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* Scrollbar estilizada para la lista de agencias */
+#lista-agencias-container::-webkit-scrollbar {
+    width: 5px;
+}
+#lista-agencias-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 6px;
+}
+#lista-agencias-container::-webkit-scrollbar-thumb {
+    background: #dc2626;
+    border-radius: 6px;
+}
+#lista-agencias-container::-webkit-scrollbar-thumb:hover {
+    background: #b91c1c;
+}
+
+/* Transiciones suaves en cards y botones */
+button, input, select, .tipo-envio-btn {
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Optimización táctil y rendimiento en dispositivos móviles (Android & iOS) */
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+button, a, select, input[type="radio"], input[type="checkbox"] {
+    touch-action: manipulation;
+}
+
+/* Evitar el auto-zoom forzado y molesto de Safari en iPhone al hacer tap en inputs */
+@media screen and (max-width: 768px) {
+    input[type="text"],
+    input[type="tel"],
+    input[type="number"],
+    select,
+    textarea {
+        font-size: 16px !important;
+    }
+}
+
+/* Desplazamiento táctil con inercia nativa para iOS y Android */
+.overflow-y-auto, .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Scroll snap para las fechas de despacho en pantallas táctiles */
+#fechas-despacho-scroll {
+    scroll-snap-type: x mandatory;
+}
+#fechas-despacho-scroll > button {
+    scroll-snap-align: start;
+}
+
+/* Ajustes Leaflet */
+.leaflet-container {
+    font-family: inherit;
+    border-radius: 1rem;
+}
+.custom-shalom-marker {
+    background: transparent;
+    border: none;
+}
+.custom-user-marker {
+    background: transparent;
+    border: none;
+}

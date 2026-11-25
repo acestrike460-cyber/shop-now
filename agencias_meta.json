@@ -1,0 +1,42 @@
+{
+ "fuente": "API Shalom Perú Oficial (570 agencias)",
+ "tipo_fuente": "api_autorizada",
+ "actualizado_en": "2026-11-24T23:29:59-05:00",
+ "reporte": {
+  "recibidos": 570,
+  "descartados_invalidos": 0,
+  "duplicados_id": 0,
+  "duplicados_ubicacion": 2,
+  "inactivas": 15,
+  "sin_destino": 0,
+  "sin_coordenadas": 25,
+  "ejemplos_descartados": [],
+  "total": 570,
+  "activas": 555,
+  "publicables": 555
+ },
+ "historial": [
+  {
+   "fecha": "2026-11-24T23:29:59-05:00",
+   "fuente": "API Shalom Perú Oficial (570 agencias)",
+   "tipo": "api_autorizada",
+   "usuario": "admin",
+   "nuevas": 0,
+   "modificadas": 536,
+   "retiradas": 1,
+   "publicables": 555,
+   "respaldo": "agencias_20261124_232959_216018.json"
+  },
+  {
+   "fecha": "2026-11-24T19:55:00-05:00",
+   "fuente": "Instantánea del localizador público shalom.com.pe/agencias (24/11/2026), pendiente de validación con fuente oficial",
+   "tipo": "snapshot_inicial",
+   "usuario": "cli",
+   "nuevas": 570,
+   "modificadas": 0,
+   "retiradas": 0,
+   "publicables": 504,
+   "respaldo": null
+  }
+ ]
+}
