@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Acceso Administrativo | {{ business_name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto px-4 py-16">
+    <div class="bg-white rounded-3xl p-8 border border-gray-200 shadow-xl">
+        <div class="text-center mb-8">
+            <div class="w-14 h-14 bg-shalom-50 text-shalom-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-shalom-100 shadow-sm">
+                <i data-lucide="shield-lock" class="w-7 h-7"></i>
+            </div>
+            <h2 class="text-xl font-extrabold text-gray-900 tracking-tight">Panel Administrativo</h2>
+            <p class="text-xs text-gray-500 mt-1">Acceso seguro exclusivo para gestión de despachos</p>
+        </div>
+
+        <form id="loginForm" class="space-y-5" onsubmit="return handleLogin(event);">
+            <div>
+                <label for="username" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                    Usuario
+                </label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                        <i data-lucide="user" class="w-4 h-4"></i>
+                    </div>
+                    <input 
+                        type="text" 
+                        id="username" 
+                        name="username" 
+                        required 
+                        placeholder="admin"
+                        class="block w-full pl-10 pr-3.5 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-shalom-500 focus:border-shalom-500 transition-all font-medium"
+                    >
+                </div>
+            </div>
+
+            <div>
+                <label for="password" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                    Contraseña
+                </label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                        <i data-lucide="lock" class="w-4 h-4"></i>
+                    </div>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password" 
+                        required 
+                        placeholder="••••••••"
+                        class="block w-full pl-10 pr-3.5 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-shalom-500 focus:border-shalom-500 transition-all font-medium"
+                    >
+                </div>
+            </div>
+
+            <div id="login-error" class="hidden p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs flex items-center gap-2">
+                <i data-lucide="alert-circle" class="w-4 h-4 shrink-0"></i>
+                <span id="login-error-text">Credenciales incorrectas</span>
+            </div>
+
+            <button 
+                type="submit" 
+                id="btn-login"
+                class="w-full py-3 bg-shalom-600 hover:bg-shalom-700 text-white font-bold rounded-xl shadow-lg shadow-shalom-600/30 transition-all text-xs flex items-center justify-center gap-2 cursor-pointer"
+            >
+                <span id="login-spinner" class="hidden animate-spin">
+                    <i data-lucide="loader-2" class="w-3.5 h-3.5"></i>
+                </span>
+                <span>Ingresar al Panel</span>
+            </button>
+        </form>
+
+        <div class="mt-6 text-center">
+            <a href="/" class="text-xs text-gray-500 hover:text-shalom-600 flex items-center justify-center gap-1">
+                <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+                <span>Volver al formulario de clientes</span>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function handleLogin(e) {
+        e.preventDefault();
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value;
+        const errorBox = document.getElementById('login-error');
+        const errorText = document.getElementById('login-error-text');
+        const spinner = document.getElementById('login-spinner');
+        const btn = document.getElementById('btn-login');
+
+        errorBox.classList.add('hidden');
+        spinner.classList.remove('hidden');
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('/api/admin/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username, password})
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                window.location.href = data.redirect_url || '/admin';
+            } else {
+                errorText.textContent = data.detail || 'Usuario o contraseña inválidos.';
+                errorBox.classList.remove('hidden');
+                lucide.createIcons();
+            }
+        } catch (err) {
+            errorText.textContent = 'Error de conexión con el servidor.';
+            errorBox.classList.remove('hidden');
+        } finally {
+            spinner.classList.add('hidden');
+            btn.disabled = false;
+        }
+    }
+</script>
+{% endblock %}
