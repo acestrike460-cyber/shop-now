@@ -58,7 +58,7 @@ class Settings:
     SHALOM_PRO_RUC_REMITENTE: str = os.getenv("SHALOM_PRO_RUC_REMITENTE", "20123456789").strip()
     SHALOM_PRO_RAZON_SOCIAL: str = os.getenv("SHALOM_PRO_RAZON_SOCIAL", "SHOP NOW").strip()
     SHALOM_PRO_TELEFONO_REMITENTE: str = os.getenv("SHALOM_PRO_TELEFONO_REMITENTE", "987654321").strip()
-    SHALOM_PRO_AGENCIA_ORIGEN_ID: str = os.getenv("SHALOM_PRO_AGENCIA_ORIGEN_ID", "101").strip()  # ID de agencia donde dejas paquetes
+    SHALOM_PRO_AGENCIA_ORIGEN_ID: str = os.getenv("SHALOM_PRO_AGENCIA_ORIGEN_ID", "4").strip()  # ID de agencia origen donde dejas paquetes (4 = Av México, Lima)
 
     # Registro de envíos
     DUPLICADO_VENTANA_HORAS: int = int(os.getenv("DUPLICADO_VENTANA_HORAS", "24"))

@@ -110,16 +110,27 @@ class ShalomProService:
                 nombres = str(envio.get("nombres", "")).strip().upper()
                 paterno = str(envio.get("apellido_paterno", "")).strip().upper()
                 materno = str(envio.get("apellido_materno", "")).strip().upper()
-                if not materno or materno in ("NO_ESPECIFICADO", "NO ESPECIFICADO", "-"):
+
+                if not paterno and not materno and envio.get("apellidos"):
+                    parts = str(envio.get("apellidos", "")).strip().split()
+                    if len(parts) >= 2:
+                        paterno = parts[0]
+                        materno = " ".join(parts[1:])
+                    elif len(parts) == 1:
+                        paterno = parts[0]
+                        materno = parts[0]
+
+                if not materno or materno in ("NO_ESPECIFICADO", "NO ESPECIFICADO", "-", "NONE", "NULL"):
                     materno = paterno or "PEREZ"
-                if not paterno:
+                if not paterno or paterno in ("-", "NONE", "NULL"):
                     paterno = materno or "PEREZ"
-                apellidos = f"{paterno} {materno}".strip().upper()
-                if not apellidos:
-                    apellidos = f"{nombres} {nombres}"
+
+                origin_id = int(settings.SHALOM_PRO_AGENCIA_ORIGEN_ID or 4)
+                if origin_id == ter_destino_id:
+                    origin_id = 4 if ter_destino_id != 4 else 230
 
                 payload_api = {
-                    "origin_terminal_id": int(settings.SHALOM_PRO_AGENCIA_ORIGEN_ID or 101),
+                    "origin_terminal_id": origin_id,
                     "destiny_terminal_id": ter_destino_id,
                     "product_id": product_id,
                     "pickup_code": pickup_code,
@@ -128,7 +139,8 @@ class ShalomProService:
                         "document": str(envio.get("dni", "")).strip(),
                         "document_type": str(envio.get("tipo_documento", "DNI")).strip().upper(),
                         "name": nombres,
-                        "last_name": apellidos,
+                        "last_name": paterno,
+                        "sur_name": materno,
                         "phone": cel_int
                     }
                 }

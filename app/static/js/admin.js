@@ -387,7 +387,12 @@ async function confirmarEmisionShalomPro() {
 
         const data = await res.json();
         if (!res.ok) {
-            alert(`Error de Shalom Pro: ${data.detail || 'No se pudo generar la guía'}`);
+            let errorMsg = data.detail || 'No se pudo generar la guía';
+            if (typeof errorMsg === 'string' && errorMsg.includes('apellido materno es obligatorio')) {
+                alert(`⚠️ Aviso de Shalom Pro:\n\nEste DNI en particular figura en la base de datos de Shalom con su ficha de ventanilla incompleta.\n\nSoluciones rápidas:\n1. Usa el botón superior "Carga Masiva Shalom Pro" para descargarlo en Excel (se sube en pro.shalom.pe sin este bloqueo).\n2. O en pro.shalom.pe ve a Mantenimiento ➔ Clientes/Destinatarios y completa el apellido de este DNI.`);
+            } else {
+                alert(`Error de Shalom Pro: ${errorMsg}`);
+            }
             if (btn) btn.disabled = false;
             if (btnText) btnText.textContent = 'Confirmar y Emitir Guía';
             return;
