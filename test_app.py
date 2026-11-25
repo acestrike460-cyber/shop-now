@@ -307,3 +307,46 @@ def test_cambiar_tamano_paquete_individual():
     # Validar rechazo de tamaño inválido
     res_inv = client.put(f"/api/admin/envios/{codigo}/tamano", json={"tamano_paquete": "PAQUETE GIGANTE"}, headers=headers)
     assert res_inv.status_code == 422
+
+def test_admin_eliminar_envio():
+    login_res = client.post("/api/admin/login", json={"username": "admin", "password": "admin2026"})
+    assert login_res.status_code == 200
+    token = login_res.json()["token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Crear un nuevo envío para eliminar
+    idemp_key = f"test_del_{uuid.uuid4().hex[:12]}"
+    payload_envio = {
+        "tipo_documento": "DNI",
+        "dni": "71995142",
+        "nombres": "TEST ELIMINAR",
+        "apellido_paterno": "RODRIGUEZ",
+        "apellido_materno": "PEREZ",
+        "celular": "987654321",
+        "departamento": "Lima",
+        "provincia": "Lima",
+        "distrito": "Los Olivos",
+        "codigo_agencia": "SHA-101",
+        "nombre_agencia": "AGENCIA TEST",
+        "direccion_agencia": "Av. Test 123",
+        "estado_verificacion_identidad": "VERIFICADO_RENIEC_OFICIAL",
+        "idempotency_key": idemp_key
+    }
+    res_crear = client.post("/api/envios/registrar", json=payload_envio)
+    assert res_crear.status_code == 200
+    codigo = res_crear.json()["codigo_registro"]
+
+    # Verificar que existe
+    assert DatabaseManager.obtener_envio_por_codigo(codigo) is not None
+
+    # Eliminar el envío vía API
+    res_del = client.delete(f"/api/admin/envios/{codigo}", headers=headers)
+    assert res_del.status_code == 200
+    assert res_del.json()["success"] is True
+
+    # Verificar que ya no existe en la base de datos
+    assert DatabaseManager.obtener_envio_por_codigo(codigo) is None
+
+    # Intentar eliminar de nuevo debe dar 404
+    res_del_404 = client.delete(f"/api/admin/envios/{codigo}", headers=headers)
+    assert res_del_404.status_code == 404

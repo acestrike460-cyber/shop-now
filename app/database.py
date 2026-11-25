@@ -312,6 +312,18 @@ class DatabaseManager:
         return afectados > 0
 
     @classmethod
+    def eliminar_envio(cls, id_envio: str) -> bool:
+        """Elimina permanentemente un registro de envío por id o codigo_registro."""
+        cls.init_db()
+        conn = cls.get_connection()
+        cur = conn.cursor()
+        cur.execute("DELETE FROM envios_shalom WHERE id = ? OR codigo_registro = ?", (id_envio.strip(), id_envio.strip()))
+        afectados = cur.rowcount
+        conn.commit()
+        conn.close()
+        return afectados > 0
+
+    @classmethod
     def obtener_metricas(cls) -> Dict[str, Any]:
         cls.init_db()
         conn = cls.get_connection()

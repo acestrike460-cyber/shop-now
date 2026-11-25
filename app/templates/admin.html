@@ -320,14 +320,24 @@
                                 </select>
                             </td>
                             <td class="px-4 py-3 text-right whitespace-nowrap">
-                                <button 
-                                    type="button" 
-                                    onclick='abrirDetalleEnvio({{ envio | tojson }})'
-                                    class="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-100 text-gray-600 hover:text-gray-900 transition-colors" 
-                                    title="Ver detalle completo"
-                                >
-                                    <i data-lucide="eye" class="w-4 h-4"></i>
-                                </button>
+                                <div class="flex items-center justify-end gap-1.5">
+                                    <button 
+                                        type="button" 
+                                        onclick='abrirDetalleEnvio({{ envio | tojson }})'
+                                        class="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-100 text-gray-600 hover:text-gray-900 transition-colors" 
+                                        title="Ver detalle completo"
+                                    >
+                                        <i data-lucide="eye" class="w-4 h-4"></i>
+                                    </button>
+                                    <button 
+                                        type="button" 
+                                        onclick='eliminarEnvio("{{ envio.id }}", "{{ envio.codigo_registro }}")'
+                                        class="p-1.5 rounded-lg border border-red-200 hover:bg-red-50 text-red-500 hover:text-red-700 transition-colors" 
+                                        title="Eliminar este envío"
+                                    >
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                         {% else %}
@@ -437,7 +447,15 @@
         <div class="space-y-3 text-xs" id="detalle-modal-contenido">
             <!-- Rellenado dinámicamente -->
         </div>
-        <div class="mt-6 flex justify-end">
+        <div class="mt-6 flex items-center justify-between">
+            <button 
+                type="button" 
+                id="btn-modal-eliminar-envio" 
+                class="px-3.5 py-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-colors"
+            >
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                Eliminar Envío
+            </button>
             <button type="button" onclick="cerrarDetalleEnvio()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-xl">
                 Cerrar
             </button>

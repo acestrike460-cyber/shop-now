@@ -194,18 +194,31 @@ function renderizarTablaAdmin(envios) {
                 </select>
             </td>
             <td class="px-4 py-3 text-right whitespace-nowrap">
-                <button 
-                    type="button" 
-                    class="btn-ver-detalle p-1.5 rounded-lg border border-gray-200 hover:bg-gray-100 text-gray-600 hover:text-gray-900 transition-colors" 
-                    title="Ver detalle completo"
-                >
-                    <i data-lucide="eye" class="w-4 h-4"></i>
-                </button>
+                <div class="flex items-center justify-end gap-1.5">
+                    <button 
+                        type="button" 
+                        class="btn-ver-detalle p-1.5 rounded-lg border border-gray-200 hover:bg-gray-100 text-gray-600 hover:text-gray-900 transition-colors" 
+                        title="Ver detalle completo"
+                    >
+                        <i data-lucide="eye" class="w-4 h-4"></i>
+                    </button>
+                    <button 
+                        type="button" 
+                        class="btn-eliminar-envio p-1.5 rounded-lg border border-red-200 hover:bg-red-50 text-red-500 hover:text-red-700 transition-colors" 
+                        title="Eliminar este envío"
+                    >
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
             </td>
         `;
 
         tr.querySelector('.btn-ver-detalle').addEventListener('click', () => {
             abrirDetalleEnvio(e);
+        });
+
+        tr.querySelector('.btn-eliminar-envio').addEventListener('click', () => {
+            eliminarEnvio(e.id, e.codigo_registro);
         });
 
         tbody.appendChild(tr);
@@ -320,7 +333,37 @@ function abrirDetalleEnvio(envio) {
     `;
 
     modal.classList.remove('hidden');
+
+    const btnEliminarModal = document.getElementById('btn-modal-eliminar-envio');
+    if (btnEliminarModal) {
+        btnEliminarModal.onclick = () => {
+            cerrarDetalleEnvio();
+            eliminarEnvio(envio.id, envio.codigo_registro);
+        };
+    }
+
     lucide.createIcons();
+}
+
+async function eliminarEnvio(idEnvio, codigoEnvio) {
+    const confirmacion = confirm(`¿Estás seguro de que deseas eliminar permanentemente el envío ${codigoEnvio || idEnvio}?\n\nEsta acción no se puede deshacer.`);
+    if (!confirmacion) return;
+
+    try {
+        const res = await fetch(`/api/admin/envios/${idEnvio}`, {
+            method: 'DELETE',
+            headers: {'Content-Type': 'application/json'}
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            alert(data.detail || 'Error al eliminar el envío.');
+        } else {
+            recargarTablaEnvios();
+        }
+    } catch (err) {
+        console.error('Error al eliminar envío:', err);
+        alert('Error de conexión al intentar eliminar el envío.');
+    }
 }
 
 function cerrarDetalleEnvio() {

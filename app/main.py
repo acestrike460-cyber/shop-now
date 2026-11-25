@@ -445,6 +445,25 @@ async def api_admin_update_envio_tamano(
         "mensaje": f"Tamaño actualizado a {payload.tamano_paquete}"
     }
 
+@app.delete("/api/admin/envios/{id_envio}")
+async def api_admin_eliminar_envio(
+    id_envio: str,
+    admin: dict = Depends(get_current_admin)
+):
+    """Permite al operador eliminar permanentemente un registro de envío."""
+    envio = DatabaseManager.obtener_envio_por_codigo(id_envio)
+    if not envio:
+        raise HTTPException(status_code=404, detail="Envío no encontrado")
+    
+    exito = DatabaseManager.eliminar_envio(id_envio)
+    if not exito:
+        raise HTTPException(status_code=500, detail="No se pudo eliminar el registro de envío")
+    
+    return {
+        "success": True,
+        "mensaje": f"Envío {envio.get('codigo_registro')} eliminado permanentemente"
+    }
+
 @app.post("/api/admin/envios/{id_envio}/emitir-shalom-pro")
 async def api_admin_emitir_guia_shalom_pro(
     id_envio: str,
