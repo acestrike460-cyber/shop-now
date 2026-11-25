@@ -26,7 +26,7 @@ class Settings:
 
     # Credenciales del Panel Administrativo
     ADMIN_USERNAME: str = os.getenv("ADMIN_USERNAME", "admin")
-    ADMIN_PASSWORD: str = os.getenv("ADMIN_PASSWORD", "Admin2026!Shalom")
+    ADMIN_PASSWORD: str = os.getenv("ADMIN_PASSWORD", "admin2026")
     ADMIN_SECRET_KEY: str = os.getenv("ADMIN_SECRET_KEY", "shalom_envios_secret_key_2026_pe_secure_token_588392")
     COOKIE_SECURE: bool = _bool("COOKIE_SECURE", "false")
 
