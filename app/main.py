@@ -133,20 +133,25 @@ async def view_success(codigo: str, request: Request):
             f"📅 *Día programado de despacho:* {fecha_despacho}"
         ])
 
+    base_url = str(request.base_url).rstrip("/")
+    if "onrender.com" in base_url and base_url.startswith("http://"):
+        base_url = base_url.replace("http://", "https://")
+    tracking_url = f"{base_url}/seguimiento/{codigo_registro}"
+
     lineas.extend([
         f"━━━━━━━━━━━━━━━━━━━",
-        f"💬 *Estado:* Esperando coordinación de pago y despacho con la tienda."
+        f"💬 *Estado:* Esperando coordinación de pago y despacho con la tienda.",
+        f"🔍 *Link de seguimiento en vivo:* {tracking_url}"
     ])
 
     mensaje_whatsapp = "\n".join(lineas)
     
     # Número de destino (si está configurado en .env o vacío para abrir selector de chat)
     num_wa = settings.BUSINESS_WHATSAPP.replace("+", "").replace(" ", "").strip()
+    from urllib.parse import quote
     if num_wa:
-        from urllib.parse import quote
         whatsapp_link = f"https://api.whatsapp.com/send?phone={num_wa}&text={quote(mensaje_whatsapp)}"
     else:
-        from urllib.parse import quote
         whatsapp_link = f"https://api.whatsapp.com/send?text={quote(mensaje_whatsapp)}"
 
     return templates.TemplateResponse(
@@ -156,9 +161,61 @@ async def view_success(codigo: str, request: Request):
             "business_name": settings.BUSINESS_NAME,
             "envio": envio,
             "mensaje_whatsapp": mensaje_whatsapp,
-            "whatsapp_link": whatsapp_link
+            "whatsapp_link": whatsapp_link,
+            "tracking_url": tracking_url
         }
     )
+
+@app.get("/seguimiento/{codigo}", response_class=HTMLResponse)
+@app.get("/tracking/{codigo}", response_class=HTMLResponse)
+async def view_tracking(codigo: str, request: Request):
+    """Página interactiva de seguimiento para los clientes."""
+    envio = DatabaseManager.obtener_envio_por_codigo(codigo)
+    if not envio:
+        return RedirectResponse(url="/?error=envio_no_encontrado")
+
+    num_wa = settings.BUSINESS_WHATSAPP.replace("+", "").replace(" ", "").strip()
+    msg = f"Hola {settings.BUSINESS_NAME}, tengo una consulta sobre mi envío #{envio.get('codigo_registro')} a Shalom {envio.get('nombre_agencia')}."
+    from urllib.parse import quote
+    if num_wa:
+        wa_link = f"https://api.whatsapp.com/send?phone={num_wa}&text={quote(msg)}"
+    else:
+        wa_link = f"https://api.whatsapp.com/send?text={quote(msg)}"
+
+    base_url = str(request.base_url).rstrip("/")
+    if "onrender.com" in base_url and base_url.startswith("http://"):
+        base_url = base_url.replace("http://", "https://")
+    tracking_url = f"{base_url}/seguimiento/{envio.get('codigo_registro')}"
+
+    return templates.TemplateResponse(
+        request=request,
+        name="tracking.html",
+        context={
+            "business_name": settings.BUSINESS_NAME,
+            "envio": envio,
+            "whatsapp_tienda_link": wa_link,
+            "tracking_url": tracking_url
+        }
+    )
+
+@app.get("/api/seguimiento/{codigo}")
+async def api_seguimiento_detalle(codigo: str):
+    """API JSON pública para consultar el estado en tiempo real de un envío."""
+    envio = DatabaseManager.obtener_envio_por_codigo(codigo)
+    if not envio:
+        raise HTTPException(status_code=404, detail="Envío no encontrado")
+    return {
+        "success": True,
+        "codigo_registro": envio.get("codigo_registro"),
+        "estado_registro": envio.get("estado_registro"),
+        "destinatario": f"{envio.get('nombres')} {envio.get('apellido_paterno')}",
+        "agencia_destino": envio.get("nombre_agencia"),
+        "direccion_agencia": envio.get("direccion_agencia"),
+        "numero_guia_shalom": envio.get("numero_guia_shalom"),
+        "url_guia_pdf": envio.get("url_guia_pdf"),
+        "fecha_registro": envio.get("fecha_registro"),
+        "updated_at": envio.get("updated_at")
+    }
 
 # ==============================================================================
 # APIS PARA RENIEC Y VALIDACIONES

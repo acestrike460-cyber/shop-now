@@ -1,0 +1,324 @@
+{% extends "base.html" %}
+
+{% block title %}Seguimiento de tu envío | {{ business_name }}{% endblock %}
+
+{% block head %}
+<style>
+    .pulse-dot {
+        animation: pulseAnimation 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    @keyframes pulseAnimation {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: .6; transform: scale(1.15); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="w-full max-w-md mx-auto py-3 sm:py-6 text-center relative px-2">
+
+    <!-- Enlace superior de retorno -->
+    <div class="text-left mb-3">
+        <a href="/" class="text-xs text-gray-500 hover:text-gray-900 font-semibold inline-flex items-center gap-1 transition-colors">
+            <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+            <span>Volver a {{ business_name }}</span>
+        </a>
+    </div>
+
+    <!-- Título y Subtítulo -->
+    <div class="text-left mb-4">
+        <h1 class="text-2xl font-black text-gray-900 tracking-tight">Seguimiento de tu envío</h1>
+        <p class="text-xs text-gray-500 font-medium mt-0.5">Preparación en tienda y seguimiento de Shalom</p>
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- TARJETA PRINCIPAL DE ESTADO (HERO CARD ROJO/NARANJA)                -->
+    <!-- ==================================================================== -->
+    <div class="bg-gradient-to-b from-[#e03131] to-[#b91c1c] text-white rounded-3xl p-5 sm:p-6 shadow-xl shadow-red-500/20 text-center relative overflow-hidden mb-4">
+        
+        <!-- Icono decorativo de caja de envío -->
+        <div class="w-14 h-14 bg-white/15 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-3 border border-white/20 shadow-inner">
+            <i data-lucide="package" class="w-7 h-7 text-white"></i>
+        </div>
+
+        <!-- Título de Estado Dinámico -->
+        {% if envio.estado_registro == 'ENTREGADO' %}
+            <h2 class="text-xl sm:text-2xl font-black tracking-tight mb-1">¡Entregado con éxito!</h2>
+            <p class="text-xs text-red-100 font-medium px-2 leading-relaxed mb-4">
+                Tu pedido fue recibido y entregado satisfactoriamente en destino. ¡Gracias por tu compra!
+            </p>
+        {% elif envio.estado_registro == 'ENVIADO' %}
+            <h2 class="text-xl sm:text-2xl font-black tracking-tight mb-1">En camino con Shalom</h2>
+            <p class="text-xs text-red-100 font-medium px-2 leading-relaxed mb-4">
+                Tu pedido ya está en ruta a través de la red nacional de Shalom rumbo a <strong>{{ envio.nombre_agencia }}</strong>.
+            </p>
+        {% elif envio.estado_registro == 'EN_PREPARACION' %}
+            <h2 class="text-xl sm:text-2xl font-black tracking-tight mb-1">En preparación para despacho</h2>
+            <p class="text-xs text-red-100 font-medium px-2 leading-relaxed mb-4">
+                Tu pedido #{{ envio.codigo_registro }} ya está empaquetado y rotulado. Será llevado a Shalom <strong>{{ envio.nombre_agencia }}</strong>.
+            </p>
+        {% elif envio.estado_registro == 'CANCELADO' %}
+            <h2 class="text-xl sm:text-2xl font-black tracking-tight mb-1">Pedido Cancelado</h2>
+            <p class="text-xs text-red-100 font-medium px-2 leading-relaxed mb-4">
+                Este pedido ha sido cancelado. Si tienes dudas, contáctanos por WhatsApp.
+            </p>
+        {% else %}
+            <h2 class="text-xl sm:text-2xl font-black tracking-tight mb-1">En preparación</h2>
+            <p class="text-xs text-red-100 font-medium px-2 leading-relaxed mb-4">
+                Tu pedido #{{ envio.codigo_registro }} está registrado en la tienda y será llevado pronto a Shalom <strong>{{ envio.nombre_agencia }}</strong> ({{ envio.direccion_agencia }}).
+            </p>
+        {% endif %}
+
+        <!-- Barra de progreso -->
+        {% set pct = 25 %}
+        {% if envio.estado_registro == 'EN_PREPARACION' %}{% set pct = 50 %}
+        {% elif envio.estado_registro == 'ENVIADO' %}{% set pct = 75 %}
+        {% elif envio.estado_registro == 'ENTREGADO' %}{% set pct = 100 %}
+        {% elif envio.estado_registro == 'CANCELADO' %}{% set pct = 0 %}
+        {% endif %}
+
+        <div class="w-full bg-black/25 rounded-full h-2 mb-3 overflow-hidden p-0.5">
+            <div class="bg-white rounded-full h-full transition-all duration-700 shadow-sm" style="width: {{ pct }}%;"></div>
+        </div>
+
+        <!-- Pastilla del Código de Pedido -->
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-sm text-[11px] font-mono font-bold tracking-wide border border-white/20">
+            <span>Pedido:</span>
+            <span>#{{ envio.codigo_registro }}</span>
+        </div>
+
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- STEPPER DE 4 ETAPAS HORIZONTALES (IDÉNTICO A LA REFERENCIA)         -->
+    <!-- ==================================================================== -->
+    <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-4">
+        <div class="relative flex items-center justify-between px-2">
+            <!-- Línea de fondo -->
+            <div class="absolute left-6 right-6 top-1/2 -translate-y-1/2 h-0.5 bg-gray-200 z-0"></div>
+            
+            <!-- Etapa 1: Alistado / Registrado -->
+            {% set s1 = true %}
+            <div class="relative z-10 flex flex-col items-center">
+                <div class="w-8 h-8 rounded-full bg-shalom-600 text-white flex items-center justify-center font-bold text-xs shadow-md shadow-shalom-600/30 ring-4 ring-white">
+                    <i data-lucide="check" class="w-4 h-4"></i>
+                </div>
+                <span class="text-[10px] font-bold text-shalom-700 mt-1">Alistado</span>
+            </div>
+
+            <!-- Etapa 2: Registrado en Shalom -->
+            {% set s2 = envio.numero_guia_shalom or envio.estado_registro in ['EN_PREPARACION', 'ENVIADO', 'ENTREGADO'] %}
+            <div class="relative z-10 flex flex-col items-center">
+                <div class="w-8 h-8 rounded-full {% if s2 %}bg-shalom-600 text-white shadow-md shadow-shalom-600/30{% else %}bg-white border-2 border-gray-300 text-gray-400{% endif %} flex items-center justify-center font-bold text-xs ring-4 ring-white">
+                    {% if s2 %}
+                        <i data-lucide="check" class="w-4 h-4"></i>
+                    {% else %}
+                        <i data-lucide="clock" class="w-4 h-4"></i>
+                    {% endif %}
+                </div>
+                <span class="text-[10px] font-bold {% if s2 %}text-shalom-700{% else %}text-gray-400{% endif %} mt-1">Registrado</span>
+            </div>
+
+            <!-- Etapa 3: En camino -->
+            {% set s3 = envio.estado_registro in ['ENVIADO', 'ENTREGADO'] %}
+            <div class="relative z-10 flex flex-col items-center">
+                <div class="w-8 h-8 rounded-full {% if s3 %}bg-shalom-600 text-white shadow-md shadow-shalom-600/30{% else %}bg-white border-2 border-gray-300 text-gray-400{% endif %} flex items-center justify-center text-xs ring-4 ring-white">
+                    {% if s3 %}
+                        <i data-lucide="truck" class="w-4 h-4"></i>
+                    {% else %}
+                        <i data-lucide="truck" class="w-4 h-4 text-gray-300"></i>
+                    {% endif %}
+                </div>
+                <span class="text-[10px] font-bold {% if s3 %}text-shalom-700{% else %}text-gray-400{% endif %} mt-1">En camino</span>
+            </div>
+
+            <!-- Etapa 4: En agencia destino / Entregado -->
+            {% set s4 = envio.estado_registro == 'ENTREGADO' %}
+            <div class="relative z-10 flex flex-col items-center">
+                <div class="w-8 h-8 rounded-full {% if s4 %}bg-emerald-600 text-white shadow-md shadow-emerald-600/30{% else %}bg-white border-2 border-gray-300 text-gray-400{% endif %} flex items-center justify-center text-xs ring-4 ring-white">
+                    {% if s4 %}
+                        <i data-lucide="check" class="w-4 h-4"></i>
+                    {% else %}
+                        <i data-lucide="store" class="w-4 h-4 text-gray-300"></i>
+                    {% endif %}
+                </div>
+                <span class="text-[10px] font-bold {% if s4 %}text-emerald-700{% else %}text-gray-400{% endif %} mt-1">En agencia</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- TARJETAS DE SEDE ORIGEN Y DESTINO                                    -->
+    <!-- ==================================================================== -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 text-left">
+        
+        <!-- Sede Origen -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col justify-between">
+            <div>
+                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1 mb-1">
+                    <i data-lucide="home" class="w-3.5 h-3.5 text-gray-400"></i>
+                    Sede Origen
+                </span>
+                <span class="font-bold text-gray-900 text-xs block">Almacén de la tienda</span>
+                <span class="text-[11px] text-gray-500">Lima, Perú</span>
+            </div>
+        </div>
+
+        <!-- Destino Shalom -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col justify-between">
+            <div>
+                <span class="text-[10px] font-bold text-shalom-600 uppercase tracking-wider flex items-center gap-1 mb-1">
+                    <i data-lucide="map-pin" class="w-3.5 h-3.5 text-shalom-600"></i>
+                    Destino
+                </span>
+                <span class="font-bold text-gray-900 text-xs block">{{ envio.nombre_agencia }}</span>
+                <span class="text-[11px] text-gray-600 block leading-tight mt-0.5">{{ envio.direccion_agencia }}</span>
+                <span class="text-[10px] text-gray-400 block mt-1 font-medium">{{ envio.distrito }}, {{ envio.provincia }}, {{ envio.departamento }}</span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- DETALLES DEL DESTINATARIO Y MERCADERÍA                               -->
+    <!-- ==================================================================== -->
+    <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-left mb-4 space-y-2.5">
+        <div class="grid grid-cols-2 gap-3 text-xs">
+            <div>
+                <span class="text-[10px] font-bold text-gray-400 uppercase block">Destinatario:</span>
+                <span class="font-bold text-gray-800 text-xs block truncate">{{ envio.nombres }} {{ envio.apellido_paterno }}</span>
+                <span class="text-[10px] text-gray-500 font-mono">{{ envio.tipo_documento or 'DNI' }}: {{ envio.dni }}</span>
+            </div>
+            <div>
+                <span class="text-[10px] font-bold text-gray-400 uppercase block">Mercadería:</span>
+                <span class="font-bold text-amber-800 text-xs block">1x {{ envio.tamano_paquete or 'PAQUETE XS' }}</span>
+                <span class="text-[10px] text-gray-500">Pago flete en destino</span>
+            </div>
+        </div>
+
+        <!-- Si ya tiene Guía Shalom Pro emitida -->
+        {% if envio.numero_guia_shalom %}
+        <div class="pt-2.5 border-t border-gray-100">
+            <div class="bg-red-50/70 border border-red-200/80 rounded-xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                <div>
+                    <span class="text-[10px] font-bold text-shalom-800 uppercase block flex items-center gap-1">
+                        <i data-lucide="shield-check" class="w-3.5 h-3.5 text-shalom-600"></i>
+                        Guía Oficial Shalom Generada:
+                    </span>
+                    <span class="font-mono font-black text-sm text-shalom-900 tracking-wide">{{ envio.numero_guia_shalom }}</span>
+                </div>
+                <a 
+                    href="https://shalom.com.pe/rastreo" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    class="px-3 py-1.5 bg-shalom-700 hover:bg-shalom-800 text-white font-bold text-[10px] rounded-lg transition-colors flex items-center gap-1 shadow-sm"
+                >
+                    <i data-lucide="search" class="w-3 h-3"></i>
+                    <span>Rastrear en Shalom</span>
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- HISTORIAL DE MOVIMIENTOS                                             -->
+    <!-- ==================================================================== -->
+    <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-left mb-5">
+        <h3 class="text-xs font-bold text-gray-900 mb-3 flex items-center gap-1.5">
+            <i data-lucide="history" class="w-4 h-4 text-gray-400"></i>
+            Historial de movimientos
+        </h3>
+
+        <div class="space-y-3 relative pl-4 border-l-2 border-red-200 text-xs">
+            
+            <!-- Movimiento 1: Registrado en tienda -->
+            <div class="relative">
+                <span class="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-shalom-600 ring-4 ring-white"></span>
+                <span class="font-bold text-gray-900 block">En Preparación</span>
+                <p class="text-[11px] text-gray-500 mt-0.5 leading-relaxed">
+                    Tu pedido #{{ envio.codigo_registro }} está registrado en la tienda y será llevado pronto a Shalom {{ envio.nombre_agencia }}.
+                </p>
+                <span class="text-[10px] text-gray-400 mt-1 block font-mono">{{ envio.fecha_registro[:16].replace('T', ' ') if envio.fecha_registro else 'Reciente' }}</span>
+            </div>
+
+            <!-- Movimiento 2: Guía oficial si existe -->
+            {% if envio.numero_guia_shalom %}
+            <div class="relative pt-1">
+                <span class="absolute -left-[21px] top-2 w-2.5 h-2.5 rounded-full bg-shalom-600 ring-4 ring-white"></span>
+                <span class="font-bold text-gray-900 block">Orden Oficial Shalom Emitida</span>
+                <p class="text-[11px] text-gray-500 mt-0.5 leading-relaxed">
+                    Se generó la orden de despacho oficial N° <strong>{{ envio.numero_guia_shalom }}</strong> para entrega en Shalom {{ envio.nombre_agencia }}.
+                </p>
+                <span class="text-[10px] text-gray-400 mt-1 block font-mono">{{ envio.updated_at[:16].replace('T', ' ') if envio.updated_at else 'Reciente' }}</span>
+            </div>
+            {% endif %}
+
+            <!-- Movimiento 3: Estado actual si está en camino o entregado -->
+            {% if envio.estado_registro in ['ENVIADO', 'ENTREGADO'] %}
+            <div class="relative pt-1">
+                <span class="absolute -left-[21px] top-2 w-2.5 h-2.5 rounded-full bg-emerald-600 ring-4 ring-white"></span>
+                <span class="font-bold text-gray-900 block">
+                    {% if envio.estado_registro == 'ENTREGADO' %}Entregado{% else %}En camino{% endif %}
+                </span>
+                <p class="text-[11px] text-gray-500 mt-0.5 leading-relaxed">
+                    {% if envio.estado_registro == 'ENTREGADO' %}
+                        El paquete fue retirado en la agencia Shalom.
+                    {% else %}
+                        El paquete está en tránsito hacia la agencia de destino.
+                    {% endif %}
+                </p>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- BOTÓN PARA COMPARTIR ENLACE Y WHATSAPP                              -->
+    <!-- ==================================================================== -->
+    <div class="space-y-2">
+        <button 
+            type="button" 
+            onclick="copiarLinkSeguimiento()" 
+            class="w-full py-3 rounded-2xl bg-gray-100 hover:bg-gray-200 active:scale-[0.99] text-gray-800 font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer border border-gray-200"
+        >
+            <i data-lucide="copy" class="w-4 h-4"></i>
+            <span id="btn-copy-tracking">Copiar enlace de seguimiento</span>
+        </button>
+
+        {% if whatsapp_tienda_link %}
+        <a 
+            href="{{ whatsapp_tienda_link }}" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            class="w-full py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-bold text-xs transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+        >
+            <i data-lucide="message-circle" class="w-4 h-4"></i>
+            <span>Consultar dudas por WhatsApp</span>
+        </a>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function copiarLinkSeguimiento() {
+        const url = window.location.href;
+        navigator.clipboard.writeText(url).then(() => {
+            const btn = document.getElementById('btn-copy-tracking');
+            btn.textContent = '¡Enlace copiado al portapapeles!';
+            setTimeout(() => {
+                btn.textContent = 'Copiar enlace de seguimiento';
+            }, 2500);
+        });
+    }
+
+    // Auto-refrescar cada 60 segundos por si el estado cambia en el panel admin
+    setTimeout(() => {
+        window.location.reload();
+    }, 60000);
+</script>
+{% endblock %}

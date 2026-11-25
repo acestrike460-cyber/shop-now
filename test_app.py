@@ -350,3 +350,45 @@ def test_admin_eliminar_envio():
     # Intentar eliminar de nuevo debe dar 404
     res_del_404 = client.delete(f"/api/admin/envios/{codigo}", headers=headers)
     assert res_del_404.status_code == 404
+
+def test_pagina_seguimiento_cliente():
+    # Registrar un envío
+    idemp_key = f"test_track_{uuid.uuid4().hex[:12]}"
+    payload_envio = {
+        "tipo_documento": "DNI",
+        "dni": "76543210",
+        "nombres": "JUAN ALBERTO",
+        "apellido_paterno": "VARGAS",
+        "apellido_materno": "LOPEZ",
+        "celular": "987654321",
+        "departamento": "Lima",
+        "provincia": "Lima",
+        "distrito": "Los Olivos",
+        "codigo_agencia": "SHA-101",
+        "nombre_agencia": "AGENCIA LOS OLIVOS",
+        "direccion_agencia": "Av. Alfredo Mendiola 3500",
+        "estado_verificacion_identidad": "VERIFICADO_RENIEC_OFICIAL",
+        "idempotency_key": idemp_key
+    }
+    res_crear = client.post("/api/envios/registrar", json=payload_envio)
+    assert res_crear.status_code == 200
+    codigo = res_crear.json()["codigo_registro"]
+
+    # Probar que la página de seguimiento HTML carga con 200
+    res_track = client.get(f"/seguimiento/{codigo}")
+    assert res_track.status_code == 200
+    assert "Seguimiento de tu envío" in res_track.text
+    assert codigo in res_track.text
+    assert "AGENCIA LOS OLIVOS" in res_track.text
+
+    # Probar que la API JSON de seguimiento responde
+    res_api_track = client.get(f"/api/seguimiento/{codigo}")
+    assert res_api_track.status_code == 200
+    data_track = res_api_track.json()
+    assert data_track["codigo_registro"] == codigo
+    assert data_track["agencia_destino"] == "AGENCIA LOS OLIVOS"
+
+    # Probar que la página de éxito contiene el tracking_url
+    res_success = client.get(f"/registro/exito/{codigo}")
+    assert res_success.status_code == 200
+    assert f"/seguimiento/{codigo}" in res_success.text
