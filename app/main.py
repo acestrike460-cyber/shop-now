@@ -515,6 +515,10 @@ async def api_admin_eliminar_envio(
     # Cancelar también en Shalom Pro si ya tenía guía u orden emitida
     shalom_cancelado = False
     ose_id = envio.get("ose_id")
+    if not ose_id:
+        estado_sp = str(envio.get("estado_shalom_pro") or "")
+        if "|OSE:" in estado_sp:
+            ose_id = estado_sp.split("|OSE:", 1)[1].strip()
     numero_guia = envio.get("numero_guia_shalom")
     if ose_id or numero_guia:
         res_shalom = await ShalomProService.eliminar_orden_shalom(ose_id=ose_id, numero_guia=numero_guia)
@@ -577,6 +581,7 @@ async def api_admin_emitir_guia_shalom_pro(
     monto_flete = float(resultado.get("monto_flete", 0.0))
     estado_shalom = str(resultado.get("estado_shalom", "EMITIDO")).strip()
     ose_id = str(resultado.get("ose_id") or (resultado.get("raw_response") or {}).get("ose_id") or "").strip()
+    estado_shalom_db = f"{estado_shalom}|OSE:{ose_id}" if ose_id else estado_shalom
 
     conn = DatabaseManager.get_connection()
     cur = conn.cursor()
@@ -595,7 +600,7 @@ async def api_admin_emitir_guia_shalom_pro(
         num_guia, 
         url_pdf, 
         monto_flete, 
-        estado_shalom, 
+        estado_shalom_db, 
         ose_id or None, 
         now_iso, 
         id_envio, 
@@ -612,13 +617,13 @@ async def api_admin_emitir_guia_shalom_pro(
             "numero_guia_shalom": num_guia,
             "url_guia_pdf": url_pdf,
             "monto_flete": monto_flete,
-            "estado_shalom_pro": estado_shalom,
+            "estado_shalom_pro": estado_shalom_db,
             "estado_registro": "EN_PREPARACION",
             "updated_at": now_iso
         }
         if ose_id:
             datos_supa["ose_id"] = ose_id
-        DatabaseManager._update_in_supabase("envios_shalom", id_envio, datos_supa)
+        DatabaseManager._update_in_supabase("envios_shalom", envio.get("codigo_registro") or id_envio, datos_supa)
 
     resultado["db_actualizado"] = (afectados > 0)
     return resultado

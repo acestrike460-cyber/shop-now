@@ -19,6 +19,8 @@ class DatabaseManager:
     - Soporte para emisión de Guías Oficiales con Shalom Pro.
     """
 
+    _supabase_synced: bool = False
+
     @classmethod
     def get_connection(cls) -> sqlite3.Connection:
         settings.DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -121,8 +123,10 @@ class DatabaseManager:
         conn.commit()
         conn.close()
 
-        # Si Supabase está configurado, sincronizar registros existentes
-        cls.sync_from_supabase()
+        # Si Supabase está configurado, sincronizar registros existentes SOLO al iniciar el servidor
+        if not cls._supabase_synced:
+            cls._supabase_synced = True
+            cls.sync_from_supabase()
 
     @classmethod
     def sync_from_supabase(cls):
@@ -175,8 +179,18 @@ class DatabaseManager:
                 "Content-Type": "application/json",
                 "Prefer": "return=minimal"
             }
+            endpoint = f"{url}?or=(id.eq.{id_envio},codigo_registro.eq.{id_envio})"
             with httpx.Client(timeout=5.0) as client:
-                client.patch(f"{url}?or=(id.eq.{id_envio},codigo_registro.eq.{id_envio})", headers=headers, json=data)
+                resp = client.patch(endpoint, headers=headers, json=data)
+                # Si falla por columna inexistente en el esquema de Supabase (ej. ose_id o tamano_paquete),
+                # reintentar automáticamente solo con las columnas base para no perder nunca la actualización
+                if resp.status_code >= 400:
+                    logger.warning(f"Supabase PATCH HTTP {resp.status_code}: {resp.text[:200]}")
+                    datos_seguros = {k: v for k, v in data.items() if k not in ("ose_id", "tamano_paquete")}
+                    if datos_seguros and datos_seguros != data:
+                        resp2 = client.patch(endpoint, headers=headers, json=datos_seguros)
+                        if resp2.status_code >= 400:
+                            logger.warning(f"Supabase PATCH retry HTTP {resp2.status_code}: {resp2.text[:200]}")
         except Exception as e:
             logger.warning(f"No se pudo actualizar en Supabase: {e}")
 
