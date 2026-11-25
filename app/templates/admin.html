@@ -30,13 +30,23 @@
             </h2>
         </div>
 
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+            <button 
+                type="button" 
+                onclick="abrirModalCargaMasivaShalomPro()" 
+                class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-red-600 to-shalom-700 hover:from-red-700 hover:to-shalom-800 text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
+                title="Descarga la plantilla con los pedidos lista para subir a pro.shalom.pe sin costo de API"
+            >
+                <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-white"></i>
+                <span>Carga Masiva Shalom Pro</span>
+            </button>
+
             <a 
                 href="/api/admin/envios/exportar" 
                 class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-gray-300 hover:border-gray-400 text-gray-700 text-xs font-semibold shadow-sm transition-all"
             >
                 <i data-lucide="download" class="w-3.5 h-3.5 text-gray-500"></i>
-                <span>Exportar CSV (Excel)</span>
+                <span>Exportar CSV</span>
             </a>
 
             <button 
@@ -551,6 +561,80 @@
                 <i data-lucide="zap" class="w-3.5 h-3.5"></i>
                 <span id="btn-text-shalom-pro">Confirmar y Emitir Guía</span>
             </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Guía y Descarga de Carga Masiva Shalom Pro -->
+<div id="modal-carga-masiva-shalom" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-gray-200">
+        <div class="flex items-center justify-between border-b border-gray-100 pb-3 mb-4">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-xl bg-red-50 text-shalom-600 flex items-center justify-center">
+                    <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <h3 class="font-extrabold text-gray-900 text-base">Carga Masiva en Shalom Pro</h3>
+                    <p class="text-xs text-gray-500">Emite todas tus guías a la vez sin pagar APIs</p>
+                </div>
+            </div>
+            <button type="button" onclick="cerrarModalCargaMasivaShalomPro()" class="text-gray-400 hover:text-gray-600">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <div class="space-y-4 text-xs">
+            <!-- Pasos guiados -->
+            <div class="bg-gray-50 rounded-2xl p-4 border border-gray-200 space-y-3">
+                <div class="flex items-start gap-2.5">
+                    <span class="w-5 h-5 rounded-full bg-shalom-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">1</span>
+                    <div>
+                        <p class="font-bold text-gray-900">Descarga la plantilla con tus pedidos:</p>
+                        <p class="text-gray-500 text-[11px]">Genera automáticamente el archivo con los DNI, nombres, celulares y códigos de agencia de tus clientes listos.</p>
+                    </div>
+                </div>
+
+                <div class="flex items-start gap-2.5">
+                    <span class="w-5 h-5 rounded-full bg-shalom-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">2</span>
+                    <div>
+                        <p class="font-bold text-gray-900">Inicia sesión en Shalom Pro:</p>
+                        <p class="text-gray-500 text-[11px]">Entra a <a href="https://pro.shalom.pe" target="_blank" class="text-shalom-700 underline font-bold">pro.shalom.pe</a> con tu cuenta oficial.</p>
+                    </div>
+                </div>
+
+                <div class="flex items-start gap-2.5">
+                    <span class="w-5 h-5 rounded-full bg-shalom-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">3</span>
+                    <div>
+                        <p class="font-bold text-gray-900">Sube el archivo en Envíos Masivos:</p>
+                        <p class="text-gray-500 text-[11px]">En el menú lateral de Shalom Pro, ve a <strong>Envíos ➔ Carga Masiva</strong> y arrastra el archivo. ¡Todas tus guías se emitirán en segundos!</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Opciones de descarga -->
+            <div class="p-3 bg-red-50/50 border border-red-200/80 rounded-xl space-y-2">
+                <label class="flex items-center gap-2 cursor-pointer text-gray-800 font-semibold">
+                    <input type="checkbox" id="check-solo-pendientes-masivo" checked class="rounded border-gray-300 text-shalom-600 focus:ring-shalom-500">
+                    <span>Exportar únicamente pedidos pendientes (sin guía aún)</span>
+                </label>
+                <p class="text-[10px] text-gray-500 ml-5">Recomendado para evitar registrar dos veces paquetes que ya despachaste.</p>
+            </div>
+        </div>
+
+        <div class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-gray-100 pt-4">
+            <a href="https://pro.shalom.pe" target="_blank" rel="noopener noreferrer" class="text-xs text-shalom-700 hover:text-shalom-800 font-bold inline-flex items-center gap-1">
+                <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                <span>Abrir pro.shalom.pe</span>
+            </a>
+            <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <button type="button" onclick="cerrarModalCargaMasivaShalomPro()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-xl">
+                    Cerrar
+                </button>
+                <button type="button" onclick="descargarPlantillaShalomPro()" class="px-4 py-2 bg-shalom-600 hover:bg-shalom-700 text-white text-xs font-bold rounded-xl shadow-md flex items-center gap-1.5 cursor-pointer">
+                    <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                    <span>Descargar Plantilla (.CSV)</span>
+                </button>
+            </div>
         </div>
     </div>
 </div>

@@ -352,6 +352,26 @@ async function confirmarEmisionShalomPro() {
     }
 }
 
+// ------------------------------------------------------------------------------
+// MODAL CARGA MASIVA SHALOM PRO (SIN API)
+// ------------------------------------------------------------------------------
+function abrirModalCargaMasivaShalomPro() {
+    const modal = document.getElementById('modal-carga-masiva-shalom');
+    if (modal) modal.classList.remove('hidden');
+    lucide.createIcons();
+}
+
+function cerrarModalCargaMasivaShalomPro() {
+    const modal = document.getElementById('modal-carga-masiva-shalom');
+    if (modal) modal.classList.add('hidden');
+}
+
+function descargarPlantillaShalomPro() {
+    const chk = document.getElementById('check-solo-pendientes-masivo');
+    const soloPendientes = chk ? chk.checked : true;
+    window.location.href = `/api/admin/envios/exportar-shalom-pro?solo_pendientes=${soloPendientes}`;
+}
+
 // ==============================================================================
 // 2. GESTIÓN DEL CATÁLOGO DE AGENCIAS
 // ==============================================================================
